@@ -1,12 +1,13 @@
 module;
 
+#include <coroutine>
 #include <functional>
 #include <memory>
 #include <webgpu/webgpu.h>
 
 export module gpu:instance;
 import :adapter;
-import :gpu_ref_ptr;
+import :ref_ptr;
 import :promise;
 import :log;
 
@@ -21,11 +22,21 @@ public:
 
     Promise<Adapter> RequestAdapter()
     {
-        auto promise = Promise<Adapter>();
-        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* pUserData) {
-            auto pState = Promise<Adapter>::GetState(pUserData);
-            (*pState)->SetValue(Adapter {adapter}); }, promise.GetState().release());
-        return promise;
+        using AdapterPtr = ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
+        using DevicePtr = ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease>;
+
+        // Request adapter.
+        auto adapterPromise = Promise<AdapterPtr>();
+        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* pUserData) { (*Promise<AdapterPtr>::GetState(pUserData))->SetValue(AdapterPtr { adapter }); }, adapterPromise.GetState().release());
+        auto pAdapter = co_await adapterPromise;
+
+        // Request device.
+        auto devicePromise = Promise<DevicePtr>();
+        wgpuAdapterRequestDevice(pAdapter.get(), nullptr, [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* pUserData) { (*Promise<DevicePtr>::GetState(pUserData))->SetValue(DevicePtr { device }); }, devicePromise.GetState().release());
+        auto pDevice = co_await devicePromise;
+
+        // All done.
+        co_return { pAdapter.release(), pDevice.release() };
     }
 
     void ProcessEvents()
@@ -34,7 +45,7 @@ public:
     }
 
 private:
-    gpu_ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
+    ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
 };
 
 export void Main(std::function<Promise<void>(Instance)> func)
