@@ -107,6 +107,11 @@ public:
         return std::make_unique<std::shared_ptr<PromiseState<T>>>(m_pState);
     }
 
+    static std::unique_ptr<std::shared_ptr<PromiseState<T>>> GetState(void* pUserData)
+    {
+        return std::unique_ptr<std::shared_ptr<PromiseState<T>>> { reinterpret_cast<std::shared_ptr<PromiseState<T>>*>(pUserData) };
+    }
+
 private:
     std::shared_ptr<PromiseState<T>> m_pState { std::make_shared<PromiseState<T>>() };
 };
