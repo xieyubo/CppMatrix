@@ -8,6 +8,7 @@ module;
 #include <webgpu/webgpu.h>
 
 export module gpu:context;
+import :promise;
 import :shape;
 import :tensor;
 
@@ -236,10 +237,17 @@ export struct Context {
         while (future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
             wgpuInstanceProcessEvents(instance);
         }
-    
+
         auto* pMemData = (float*)(wgpuBufferGetConstMappedRange(readbackBuffer, 0, tensor.size_in_bytes()));
         auto output = std::vector<float> { pMemData, pMemData + tensor.shape.size() };
         return output;
+    }
+
+    void Run(Promise<void> promise)
+    {
+        while (!promise.await_ready()) {
+            wgpuInstanceProcessEvents(instance);
+        }
     }
 };
 

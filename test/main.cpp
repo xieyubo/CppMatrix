@@ -1,15 +1,9 @@
 #include <array>
-#include <future>
 #include <cassert>
+#include <coroutine>
+#include <cstdio>
 #include <cstring>
 #include <webgpu/webgpu.h>
-// #include "spdlog/spdlog.h"
-
-namespace spdlog {
-void error(...) { }
-void info(...) { }
-void trace(...) { }
-}
 
 /*
  * Approximate GELU kernel definition, implemented as a WGSL.
@@ -45,7 +39,7 @@ import gpu;
 
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
-int main()
+gpu::Promise<void> co_main()
 {
     constexpr size_t N = 3072;
     std::array<float, N> inputArr, outputArr;
@@ -61,7 +55,7 @@ int main()
     auto input = context.CreateTensor(gpu::Shape { N }, inputArr.data());
     auto output = context.CreateTensor(gpu::Shape { N });
 
-    auto k = std::vector<gpu::Tensor>{ input, output };
+    auto k = std::vector<gpu::Tensor> { input, output };
     auto kernel = context.CreateKernel(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
     context.DispatchKernel(kernel);
 
@@ -71,5 +65,12 @@ int main()
         printf("output[%d]: %f\n", i, res[i]);
     }
     printf("...\n");
+    co_return;
+}
+
+int main()
+{
+    auto context = gpu::CreateContext();
+    context.Run(co_main());
     return 0;
 }
