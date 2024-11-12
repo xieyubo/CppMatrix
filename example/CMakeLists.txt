@@ -3,5 +3,5 @@ add_executable(example
     # ref.cpp
 )
 target_link_libraries(example PRIVATE
-    gpu
+    cnn
 )

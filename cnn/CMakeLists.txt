@@ -1,7 +1,7 @@
-add_library(gpu
+add_library(cnn
     adapter.cpp
 )
-target_sources(gpu PUBLIC FILE_SET CXX_MODULES FILES
+target_sources(cnn PUBLIC FILE_SET CXX_MODULES FILES
     adapter.cppm
     buffer.cpp
     dimension.cpp
@@ -13,6 +13,6 @@ target_sources(gpu PUBLIC FILE_SET CXX_MODULES FILES
     shape.cpp
     tensor.cpp
 )
-target_link_libraries(gpu INTERFACE
+target_link_libraries(cnn INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/webgpu/libdawn.so
 )

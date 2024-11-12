@@ -5,12 +5,12 @@ module;
 #include <utility>
 #include <webgpu/webgpu.h>
 
-export module gpu:adapter;
+export module cnn:adapter;
 import :dimension;
 import :promise;
 import :ref_ptr;
 
-namespace gpu {
+namespace cnn {
 
 export class Buffer;
 

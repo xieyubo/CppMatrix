@@ -35,11 +35,11 @@ fn main(
 #include <span>
 #include <vector>
 
-import gpu;
+import cnn;
 
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
-gpu::Promise<void> co_main(gpu::Instance instance)
+cnn::Promise<void> co_main(cnn::Instance instance)
 {
     constexpr size_t N = 3072;
     std::array<float, N> inputArr, outputArr;
@@ -52,12 +52,12 @@ gpu::Promise<void> co_main(gpu::Instance instance)
     printf("...\n");
 
     auto adapter = co_await instance.RequestAdapter();
-    auto input = adapter.CreateBuffer(gpu::Dimension { N });
-    auto output = adapter.CreateBuffer(gpu::Dimension { N });
+    auto input = adapter.CreateBuffer(cnn::Dimension { N });
+    auto output = adapter.CreateBuffer(cnn::Dimension { N });
 
     input.Write(std::span { inputArr });
     
-    auto k = std::vector<gpu::Buffer> { input, output };
+    auto k = std::vector<cnn::Buffer> { input, output };
     co_await adapter.Run(kShaderGELU, {k.begin(), k.end()}, cdiv(N, 256));
 
     auto o = co_await output.Read();
@@ -70,6 +70,6 @@ gpu::Promise<void> co_main(gpu::Instance instance)
 
 int main()
 {
-    gpu::Main(co_main);
+    cnn::Main(co_main);
     return 0;
 }

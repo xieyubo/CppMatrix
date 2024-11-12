@@ -1,6 +1,6 @@
 module;
 
-export module gpu;
+export module cnn;
 export import :adapter;
 export import :buffer;
 export import :dimension;

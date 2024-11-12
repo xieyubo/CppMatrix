@@ -3,9 +3,9 @@ module;
 #include <format>
 #include <stdexcept>
 
-export module gpu:log;
+export module cnn:log;
 
-namespace gpu {
+namespace cnn {
 
 export void LogAndThrow(std::string msg)
 {

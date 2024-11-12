@@ -2,10 +2,10 @@ module;
 
 #include <webgpu/webgpu.h>
 
-export module gpu:tensor;
+export module cnn:tensor;
 import :shape;
 
-namespace gpu {
+namespace cnn {
 
 export struct Tensor {
     WGPUBuffer buffer {};

@@ -4,9 +4,9 @@ module;
 #include <future>
 #include <mutex>
 
-export module gpu:promise;
+export module cnn:promise;
 
-namespace gpu {
+namespace cnn {
 
 export template <typename T>
 class PromiseState {

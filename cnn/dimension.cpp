@@ -2,9 +2,9 @@ module;
 
 #include <vector>
 
-export module gpu:dimension;
+export module cnn:dimension;
 
-namespace gpu {
+namespace cnn {
 
 export class Dimension {
 public:

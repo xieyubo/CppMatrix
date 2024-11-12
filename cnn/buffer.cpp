@@ -6,13 +6,13 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-export module gpu:buffer;
+export module cnn:buffer;
 import :adapter;
 import :dimension;
 import :promise;
 import :ref_ptr;
 
-namespace gpu {
+namespace cnn {
 
 export class Buffer {
 public:

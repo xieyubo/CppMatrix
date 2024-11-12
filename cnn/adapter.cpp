@@ -6,11 +6,11 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-module gpu;
+module cnn;
 import :buffer;
 import :promise;
 
-namespace gpu {
+namespace cnn {
 
 Buffer Adapter::CreateBuffer(Dimension dimension)
 {
