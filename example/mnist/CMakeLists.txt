@@ -4,6 +4,6 @@ add_executable(mnist
 target_sources(mnist PUBLIC FILE_SET CXX_MODULES FILES
     network.cpp
 )
-target_link_libraries(example PRIVATE
+target_link_libraries(mnist PRIVATE
     cnn
 )

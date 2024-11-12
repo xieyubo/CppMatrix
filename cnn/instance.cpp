@@ -15,6 +15,8 @@ namespace cnn {
 
 export class Instance {
 public:
+    Instance() = default;
+
     Instance(WGPUInstance instance)
         : m_pInstance { instance }
     {

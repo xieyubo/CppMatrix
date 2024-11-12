@@ -44,6 +44,16 @@ public:
         return handle;
     }
 
+    ref_ptr& operator=(ref_ptr&& r)
+    {
+        if (m_handle != r.m_handle) {
+            *this = nullptr;
+            m_handle = r.m_handle;
+            r.m_handle = nullptr;
+        }
+        return *this;
+    }
+
     ref_ptr& operator=(std::nullptr_t)
     {
         if (m_handle) {

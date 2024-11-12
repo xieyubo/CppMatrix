@@ -39,6 +39,11 @@ public:
 
     Promise<void> Run(const char* shaderScript, std::span<Tensor> buffers, size_t batchSize);
 
+    operator bool() const
+    {
+        return m_pAdapter && m_pDevice && m_pQueue;
+    }
+
 private:
     ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease> m_pAdapter {};
     ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease> m_pDevice {};
