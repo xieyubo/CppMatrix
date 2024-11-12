@@ -20,4 +20,4 @@ include_directories(
 )
 
 add_subdirectory(gpu)
-add_subdirectory(test)
+add_subdirectory(example)
