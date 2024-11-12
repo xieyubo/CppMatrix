@@ -1,11 +1,13 @@
 module;
 
 #include <memory>
+#include <span>
 #include <utility>
 #include <webgpu/webgpu.h>
 
 export module gpu:adapter;
 import :dimension;
+import :promise;
 import :ref_ptr;
 
 namespace gpu {
@@ -34,6 +36,8 @@ public:
     {
         return m_pQueue.get();
     }
+
+    Promise<void> Run(const char* shaderScript, std::span<Buffer> buffers, size_t batchSize);
 
 private:
     ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease> m_pAdapter {};

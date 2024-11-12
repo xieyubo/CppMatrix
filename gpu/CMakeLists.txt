@@ -4,7 +4,6 @@ add_library(gpu
 target_sources(gpu PUBLIC FILE_SET CXX_MODULES FILES
     adapter.cppm
     buffer.cpp
-    context.cpp
     dimension.cpp
     ref_ptr.cpp
     instance.cpp

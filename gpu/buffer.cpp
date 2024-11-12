@@ -59,6 +59,15 @@ public:
         co_return out;
     }
 
+    size_t SizeInBytes() const
+    {
+        return sizeof(float) * m_dimension.elements();
+    }
+
+    WGPUBuffer GetBuffer() const {
+        return m_pBuffer.get();
+    }
+
 private:
     Dimension m_dimension {};
     Adapter m_adapter {};

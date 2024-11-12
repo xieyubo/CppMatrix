@@ -44,7 +44,7 @@ gpu::Promise<void> co_main(gpu::Instance instance)
     constexpr size_t N = 3072;
     std::array<float, N> inputArr, outputArr;
     for (int i = 0; i < N; ++i) {
-        inputArr[i] = i / 10.0;
+        inputArr[i] = i;
     }
     for (auto i = 0u; i < 10; ++i) {
         printf("input[%d]: %f\n", i, inputArr[i]);
@@ -56,37 +56,15 @@ gpu::Promise<void> co_main(gpu::Instance instance)
     auto output = adapter.CreateBuffer(gpu::Dimension { N });
 
     input.Write(std::span { inputArr });
-    auto o = co_await input.Read();
-    for (auto i = 0u; i < 10; ++i) {
-        printf("read from input[%d]: %f\n", i, o[i]);
-    }
-    printf("...\n");
     
-    {
-        std::array<float, N> inputArr, outputArr;
-        for (int i = 0; i < N; ++i) {
-            inputArr[i] = i / 10.0;
-        }
-        for (auto i = 0u; i < 10; ++i) {
-            printf("input[%d]: %f\n", i, inputArr[i]);
-        }
-        printf("...\n");
+    auto k = std::vector<gpu::Buffer> { input, output };
+    co_await adapter.Run(kShaderGELU, {k.begin(), k.end()}, cdiv(N, 256));
 
-        auto context = gpu::CreateContext();
-        auto input = context.CreateTensor(gpu::Shape { N }, inputArr.data());
-        auto output = context.CreateTensor(gpu::Shape { N });
-
-        auto k = std::vector<gpu::Tensor> { input, output };
-        auto kernel = context.CreateKernel(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
-        context.DispatchKernel(kernel);
-
-        // copy output to cpu
-        auto res = context.ToCpu(output);
-        for (auto i = 0u; i < 10; ++i) {
-            printf("output[%d]: %f\n", i, res[i]);
-        }
-        printf("...\n");
+    auto o = co_await output.Read();
+    for (auto i = 0u; i < 10; ++i) {
+        printf("read from output[%d]: %f\n", i, o[i]);
     }
+
     co_return;
 }
 
