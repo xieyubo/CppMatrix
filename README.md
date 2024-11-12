@@ -1,11 +1,17 @@
-Install:
+C++ Neural Network
+==
+
+## Install Dependencies:
 
     sudo apt install \
-        libgtest-dev
+        clang \
+        cmake \
+        libgtest-dev \
+        ninja-build
 
-Build:
+## Build:
 
     mkdir build
     cd build
-    CXX=/usr/bin/clang++ cmake .. -GNinja
+    CXX=clang++ cmake .. -GNinja
     ninja
