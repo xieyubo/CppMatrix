@@ -5,3 +5,5 @@ add_executable(example
 target_link_libraries(example PRIVATE
     cnn
 )
+
+add_subdirectory(mnist)

@@ -57,7 +57,7 @@ cnn::Promise<void> co_main(cnn::Instance instance)
 
     input.Write(std::span { inputArr });
     
-    auto k = std::vector<cnn::Buffer> { input, output };
+    auto k = std::vector<cnn::Tensor> { input, output };
     co_await adapter.Run(kShaderGELU, {k.begin(), k.end()}, cdiv(N, 256));
 
     auto o = co_await output.Read();

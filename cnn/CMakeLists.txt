@@ -3,7 +3,6 @@ add_library(cnn
 )
 target_sources(cnn PUBLIC FILE_SET CXX_MODULES FILES
     adapter.cppm
-    buffer.cpp
     dimension.cpp
     ref_ptr.cpp
     instance.cpp

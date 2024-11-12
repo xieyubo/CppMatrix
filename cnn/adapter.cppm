@@ -12,7 +12,7 @@ import :ref_ptr;
 
 namespace cnn {
 
-export class Buffer;
+export class Tensor;
 
 export class Adapter {
 public:
@@ -25,7 +25,7 @@ public:
         m_pQueue.reset(wgpuDeviceGetQueue(m_pDevice.get()));
     }
 
-    Buffer CreateBuffer(Dimension dimension);
+    Tensor CreateBuffer(Dimension dimension);
 
     WGPUDevice GetDevice() const
     {
@@ -37,7 +37,7 @@ public:
         return m_pQueue.get();
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Buffer> buffers, size_t batchSize);
+    Promise<void> Run(const char* shaderScript, std::span<Tensor> buffers, size_t batchSize);
 
 private:
     ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease> m_pAdapter {};

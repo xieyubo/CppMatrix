@@ -40,7 +40,7 @@ fn main(
 
         input.Write(std::span { inputArr });
 
-        auto k = std::vector<cnn::Buffer> { input, output };
+        auto k = std::vector<cnn::Tensor> { input, output };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
         res = co_await output.Read();
