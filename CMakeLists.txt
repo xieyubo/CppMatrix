@@ -19,5 +19,10 @@ include_directories(
     thirdparty
 )
 
-add_subdirectory(gpu)
+find_package(GTest REQUIRED)
+
+enable_testing()
+
 add_subdirectory(example)
+add_subdirectory(gpu)
+add_subdirectory(test)

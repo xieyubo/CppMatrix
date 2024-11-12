@@ -1,7 +1,7 @@
-add_executable(test
+add_executable(example
     main.cpp
     # ref.cpp
 )
-target_link_libraries(test PRIVATE
+target_link_libraries(example PRIVATE
     gpu
 )
