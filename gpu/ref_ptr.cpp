@@ -29,11 +29,12 @@ public:
     {
     }
 
-    ref_ptr& Acquire(TGPUNativeHandle handle)
+    void reset(TGPUNativeHandle handle)
     {
-        *this = nullptr;
-        m_handle = handle;
-        return *static_cast<ref_ptr*>(this);
+        if (m_handle != handle) {
+            *this = nullptr;
+            m_handle = handle;
+        }
     }
 
     TGPUNativeHandle release()

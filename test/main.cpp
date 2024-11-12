@@ -55,6 +55,13 @@ gpu::Promise<void> co_main(gpu::Instance instance)
     auto input = adapter.CreateBuffer(gpu::Dimension { N });
     auto output = adapter.CreateBuffer(gpu::Dimension { N });
 
+    input.Write(std::span { inputArr });
+    auto o = co_await input.Read();
+    for (auto i = 0u; i < 10; ++i) {
+        printf("read from input[%d]: %f\n", i, o[i]);
+    }
+    printf("...\n");
+    
     {
         std::array<float, N> inputArr, outputArr;
         for (int i = 0; i < N; ++i) {
