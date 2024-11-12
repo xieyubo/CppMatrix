@@ -24,5 +24,5 @@ find_package(GTest REQUIRED)
 enable_testing()
 
 add_subdirectory(example)
-add_subdirectory(gpu)
+add_subdirectory(cnn)
 add_subdirectory(test)
