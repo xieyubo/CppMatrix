@@ -6,13 +6,12 @@ module;
 #include <webgpu/webgpu.h>
 
 export module cnn:adapter;
-import :dimension;
 import :promise;
 import :ref_ptr;
 
 namespace cnn {
 
-export class Tensor;
+export class Matrix;
 
 export class Adapter {
 public:
@@ -25,7 +24,7 @@ public:
         m_pQueue.reset(wgpuDeviceGetQueue(m_pDevice.get()));
     }
 
-    Tensor CreateBuffer(Dimension dimension);
+    Matrix CreateMatrix(size_t row, size_t column);
 
     WGPUDevice GetDevice() const
     {
@@ -37,7 +36,7 @@ public:
         return m_pQueue.get();
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Tensor> buffers, size_t batchSize);
+    Promise<void> Run(const char* shaderScript, std::span<Matrix> buffers, size_t batchSize);
 
     operator bool() const
     {

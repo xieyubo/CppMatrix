@@ -214,7 +214,7 @@ int main()
     spdlog::info("Setting up binding group layout");
     WGPUBindGroupLayout bgLayout;
     static constexpr uint32_t bufferSize = static_cast<uint32_t>(sizeof(float) * N);
-    spdlog::info("Tensor size: {}, number of elements {}", bufferSize, N);
+    spdlog::info("Matrix size: {}, number of elements {}", bufferSize, N);
     {
         WGPUBindGroupLayoutEntry bgLayoutEntries[2];
         bgLayoutEntries[0] = (WGPUBindGroupLayoutEntry) {

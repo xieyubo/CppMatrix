@@ -6,18 +6,20 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-export module cnn:tensor;
+export module cnn:matrix;
 import :adapter;
-import :dimension;
 import :promise;
 import :ref_ptr;
 
 namespace cnn {
 
-export class Tensor {
+export class Matrix {
 public:
-    Tensor(Dimension dimension, Adapter adapter, WGPUBuffer buffer)
-        : m_dimension { std::move(dimension) }
+    Matrix() = default;
+
+    Matrix(size_t row, size_t column, Adapter adapter, WGPUBuffer buffer)
+        : m_row { row }
+        , m_column { column }
         , m_adapter { std::move(adapter) }
         , m_pBuffer { std::move(buffer) }
     {
@@ -31,7 +33,7 @@ public:
 
     Promise<std::vector<float>> Read()
     {
-        auto bufferSize = sizeof(float) * m_dimension.elements();
+        auto bufferSize = sizeof(float) * m_row * m_column;
 
         auto readbackBufferDescriptor = WGPUBufferDescriptor {
             .usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead,
@@ -54,22 +56,35 @@ public:
         co_await mapPromise;
 
         const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
-        std::vector<float> out { pMappedData, pMappedData + m_dimension.elements() };
+        std::vector<float> out { pMappedData, pMappedData + m_row * m_column };
         wgpuBufferUnmap(pReadbackBuffer.get());
         co_return out;
     }
 
     size_t SizeInBytes() const
     {
-        return sizeof(float) * m_dimension.elements();
+        return sizeof(float) * m_row * m_column;
     }
 
-    WGPUBuffer GetBuffer() const {
+    WGPUBuffer GetBuffer() const
+    {
         return m_pBuffer.get();
     }
 
+    operator bool() const
+    {
+        return m_pBuffer;
+    }
+
+    Matrix operator*(const Matrix& other)
+    {
+        return {};
+        //auto row = m_dimension.
+    }
+
 private:
-    Dimension m_dimension {};
+    size_t m_row {};
+    size_t m_column {};
     Adapter m_adapter {};
     ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };

@@ -35,12 +35,12 @@ fn main(
         }
 
         auto adapter = co_await instance.RequestAdapter();
-        auto input = adapter.CreateBuffer(cnn::Dimension { N });
-        auto output = adapter.CreateBuffer(cnn::Dimension { N });
+        auto input = adapter.CreateMatrix(1, N);
+        auto output = adapter.CreateMatrix(1, N);
 
         input.Write(std::span { inputArr });
 
-        auto k = std::vector<cnn::Tensor> { input, output };
+        auto k = std::vector<cnn::Matrix> { input, output };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
         res = co_await output.Read();

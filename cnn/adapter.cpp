@@ -7,22 +7,22 @@ module;
 #include <webgpu/webgpu.h>
 
 module cnn;
-import :tensor;
+import :matrix;
 import :promise;
 
 namespace cnn {
 
-Tensor Adapter::CreateBuffer(Dimension dimension)
+Matrix Adapter::CreateMatrix(size_t row, size_t column)
 {
     auto bufferDesc = WGPUBufferDescriptor {
         .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-        .size = sizeof(float) * dimension.elements(),
+        .size = sizeof(float) * row * column,
     };
 
-    return { std::move(dimension), *this, wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
+    return { row, column, *this, wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
 }
 
-Promise<void> Adapter::Run(const char* shaderScript, std::span<Tensor> buffers, size_t batchSize)
+Promise<void> Adapter::Run(const char* shaderScript, std::span<Matrix> buffers, size_t batchSize)
 {
     // Create layout entries for buffers.
     auto layoutEntries = std::vector<WGPUBindGroupLayoutEntry>(buffers.size());

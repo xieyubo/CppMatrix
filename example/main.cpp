@@ -52,13 +52,13 @@ cnn::Promise<void> co_main(cnn::Instance instance)
     printf("...\n");
 
     auto adapter = co_await instance.RequestAdapter();
-    auto input = adapter.CreateBuffer(cnn::Dimension { N });
-    auto output = adapter.CreateBuffer(cnn::Dimension { N });
+    auto input = adapter.CreateMatrix(1, N);
+    auto output = adapter.CreateMatrix(1, N);
 
     input.Write(std::span { inputArr });
-    
-    auto k = std::vector<cnn::Tensor> { input, output };
-    co_await adapter.Run(kShaderGELU, {k.begin(), k.end()}, cdiv(N, 256));
+
+    auto k = std::vector<cnn::Matrix> { input, output };
+    co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
     auto o = co_await output.Read();
     for (auto i = 0u; i < 10; ++i) {
