@@ -6,11 +6,11 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-module cnn;
+module gpu_matrix;
 import :matrix;
 import :promise;
 
-namespace cnn {
+namespace gpu_matrix {
 
 Matrix Adapter::CreateMatrix(size_t row, size_t column)
 {

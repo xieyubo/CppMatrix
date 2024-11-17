@@ -5,11 +5,11 @@ module;
 #include <utility>
 #include <webgpu/webgpu.h>
 
-export module cnn:adapter;
+export module gpu_matrix:adapter;
 import :promise;
 import :ref_ptr;
 
-namespace cnn {
+namespace gpu_matrix {
 
 export class Matrix;
 

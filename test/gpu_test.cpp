@@ -1,7 +1,7 @@
 #include <coroutine>
 #include <gtest/gtest.h>
 
-import cnn;
+import gpu_matrix;
 
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
@@ -9,7 +9,7 @@ TEST(GpuTest, GELU)
 {
     std::vector<float> res;
 
-    cnn::Main([&res](cnn::Instance instance) -> cnn::Promise<void> {
+    gpu_matrix::Main([&res](gpu_matrix::Instance instance) -> gpu_matrix::Promise<void> {
         constexpr const char* kShaderGELU = R"(
 const GELU_SCALING_FACTOR: f32 = 0.7978845608028654; // sqrt(2.0 / PI)
 @group(0) @binding(0) var<storage, read_write> inp: array<f32>;
@@ -40,7 +40,7 @@ fn main(
 
         input.Write(std::span { inputArr });
 
-        auto k = std::vector<cnn::Matrix> { input, output };
+        auto k = std::vector<gpu_matrix::Matrix> { input, output };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
         res = co_await output.Read();

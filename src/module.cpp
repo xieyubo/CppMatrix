@@ -1,6 +1,6 @@
 module;
 
-export module cnn;
+export module gpu_matrix;
 export import :adapter;
 export import :instance;
 export import :log;

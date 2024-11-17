@@ -1,10 +1,10 @@
 #include <coroutine>
 #include <vector>
 
-import cnn;
+import gpu_matrix;
 import network;
 
-cnn::Promise<void> co_main(cnn::Instance instance)
+gpu_matrix::Promise<void> co_main(gpu_matrix::Instance instance)
 {
     const size_t kInputNodes = 3;//784;
     const size_t kHiddenNodes = 4; //200;
@@ -19,6 +19,6 @@ cnn::Promise<void> co_main(cnn::Instance instance)
 
 int main()
 {
-    cnn::Main(co_main);
+    gpu_matrix::Main(co_main);
     return 0;
 }

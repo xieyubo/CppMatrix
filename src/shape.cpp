@@ -2,9 +2,9 @@ module;
 
 #include <vector>
 
-export module cnn:shape;
+export module gpu_matrix:shape;
 
-namespace cnn {
+namespace gpu_matrix {
 
 export struct Shape {
     Shape() = default;

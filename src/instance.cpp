@@ -5,13 +5,13 @@ module;
 #include <memory>
 #include <webgpu/webgpu.h>
 
-export module cnn:instance;
+export module gpu_matrix:instance;
 import :adapter;
 import :ref_ptr;
 import :promise;
 import :log;
 
-namespace cnn {
+namespace gpu_matrix {
 
 export class Instance {
 public:

@@ -1,7 +1,7 @@
-add_library(cnn
+add_library(gpu_matrix
     adapter.cpp
 )
-target_sources(cnn PUBLIC FILE_SET CXX_MODULES FILES
+target_sources(gpu_matrix PUBLIC FILE_SET CXX_MODULES FILES
     adapter.cppm
     ref_ptr.cpp
     instance.cpp
@@ -11,6 +11,6 @@ target_sources(cnn PUBLIC FILE_SET CXX_MODULES FILES
     promise.cpp
     shape.cpp
 )
-target_link_libraries(cnn INTERFACE
+target_link_libraries(gpu_matrix INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/webgpu/libdawn.so
 )

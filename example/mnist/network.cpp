@@ -7,9 +7,9 @@ module;
 #include <stdexcept>
 #include <vector>
 
-import cnn;
+import gpu_matrix;
 
-using namespace cnn;
+using namespace gpu_matrix;
 
 export module network;
 
