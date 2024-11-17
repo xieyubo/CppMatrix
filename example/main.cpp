@@ -39,7 +39,7 @@ import gpu_matrix;
 
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
-gpu_matrix::Promise<void> co_main(gpu_matrix::Instance instance)
+gpu_matrix::Promise<void> co_main(gpu_matrix::GpuInstance instance)
 {
     constexpr size_t N = 3072;
     std::array<float, N> inputArr, outputArr;

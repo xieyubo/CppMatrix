@@ -5,7 +5,7 @@ module;
 #include <memory>
 #include <webgpu/webgpu.h>
 
-export module gpu_matrix:instance;
+export module gpu_matrix:gpu_instance;
 import :adapter;
 import :ref_ptr;
 import :promise;
@@ -13,11 +13,11 @@ import :log;
 
 namespace gpu_matrix {
 
-export class Instance {
+export class GpuInstance {
 public:
-    Instance() = default;
+    GpuInstance() = default;
 
-    Instance(WGPUInstance instance)
+    GpuInstance(WGPUInstance instance)
         : m_pInstance { instance }
     {
     }
@@ -50,9 +50,9 @@ private:
     ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
 };
 
-export void Main(std::function<Promise<void>(Instance)> func)
+export void Main(std::function<Promise<void>(GpuInstance)> func)
 {
-    auto instance = Instance { wgpuCreateInstance(nullptr) };
+    auto instance = GpuInstance { wgpuCreateInstance(nullptr) };
     auto promise = func(instance);
     while (!promise.await_ready()) {
         instance.ProcessEvents();

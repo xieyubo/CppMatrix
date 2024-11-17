@@ -3,8 +3,8 @@ add_library(gpu_matrix
 )
 target_sources(gpu_matrix PUBLIC FILE_SET CXX_MODULES FILES
     adapter.cppm
+    gpu_instance.cpp
     ref_ptr.cpp
-    instance.cpp
     log.cpp
     matrix.cpp
     module.cpp

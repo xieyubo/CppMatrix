@@ -15,7 +15,7 @@ export module network;
 
 export class Network {
 public:
-    Network(Instance gpuInstance, size_t inputNodes, size_t hiddenNodes, size_t outputNodes, float learningRate)
+    Network(GpuInstance gpuInstance, size_t inputNodes, size_t hiddenNodes, size_t outputNodes, float learningRate)
         : m_gpuInstance { std::move(gpuInstance) }
         , m_inputNodes { inputNodes }
         , m_hiddenNodes { hiddenNodes }
@@ -77,7 +77,7 @@ private:
         return weights;
     }
 
-    Instance m_gpuInstance {};
+    GpuInstance m_gpuInstance {};
     size_t m_inputNodes {};
     size_t m_hiddenNodes {};
     size_t m_outputNodes {};

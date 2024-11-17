@@ -4,7 +4,7 @@
 import gpu_matrix;
 import network;
 
-gpu_matrix::Promise<void> co_main(gpu_matrix::Instance instance)
+gpu_matrix::Promise<void> co_main(gpu_matrix::GpuInstance instance)
 {
     const size_t kInputNodes = 3;//784;
     const size_t kHiddenNodes = 4; //200;

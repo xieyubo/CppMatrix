@@ -9,7 +9,7 @@ TEST(GpuTest, GELU)
 {
     std::vector<float> res;
 
-    gpu_matrix::Main([&res](gpu_matrix::Instance instance) -> gpu_matrix::Promise<void> {
+    gpu_matrix::Main([&res](gpu_matrix::GpuInstance instance) -> gpu_matrix::Promise<void> {
         constexpr const char* kShaderGELU = R"(
 const GELU_SCALING_FACTOR: f32 = 0.7978845608028654; // sqrt(2.0 / PI)
 @group(0) @binding(0) var<storage, read_write> inp: array<f32>;
