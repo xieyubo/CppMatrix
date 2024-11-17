@@ -51,7 +51,7 @@ cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
     }
     printf("...\n");
 
-    auto adapter = co_await instance.RequestAdapter();
+    auto adapter = instance.GetAdapter();
     auto input = adapter.CreateMatrix(1, N);
     auto output = adapter.CreateMatrix(1, N);
 

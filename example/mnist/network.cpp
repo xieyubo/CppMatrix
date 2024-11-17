@@ -48,7 +48,7 @@ private:
     Promise<void> InitializeGpu()
     {
         if (!m_adapter) {
-            m_adapter = co_await m_gpuInstance.RequestAdapter();
+            m_adapter = m_gpuInstance.GetAdapter();
         }
 
         if (!m_weightIH) {
@@ -58,6 +58,8 @@ private:
         if (!m_weightHO) {
             m_weightHO = GenerateWeights(m_outputNodes, m_hiddenNodes);
         }
+
+        co_return;
     }
 
     Matrix GenerateWeights(size_t row, size_t column)

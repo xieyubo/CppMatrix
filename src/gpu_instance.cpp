@@ -30,9 +30,16 @@ public:
 
     Adapter GetAdapter()
     {
-        return RequestAdapter().await_resume();
+        static Adapter adapter { RequestAdapter().await_resume() };
+        return adapter;
     }
 
+    void ProcessEvents()
+    {
+        wgpuInstanceProcessEvents(m_pInstance.get());
+    }
+
+private:
     Promise<Adapter> RequestAdapter()
     {
         using AdapterPtr = ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
@@ -52,12 +59,6 @@ public:
         co_return { pAdapter.release(), pDevice.release() };
     }
 
-    void ProcessEvents()
-    {
-        wgpuInstanceProcessEvents(m_pInstance.get());
-    }
-
-private:
     ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
 };
 
