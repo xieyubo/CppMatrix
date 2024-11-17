@@ -24,6 +24,16 @@ public:
         m_pQueue.reset(wgpuDeviceGetQueue(m_pDevice.get()));
     }
 
+    ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
+    {
+        auto bufferDesc = WGPUBufferDescriptor {
+            .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
+            .size = sizeof(float) * row * column,
+        };
+
+        return ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
+    }
+
     Matrix CreateMatrix(size_t row, size_t column);
 
     WGPUDevice GetDevice() const

@@ -28,6 +28,11 @@ public:
     {
     }
 
+    Adapter GetAdapter()
+    {
+        return RequestAdapter().await_resume();
+    }
+
     Promise<Adapter> RequestAdapter()
     {
         using AdapterPtr = ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;

@@ -6,6 +6,7 @@ module;
 #include <span>
 #include <stdexcept>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <webgpu/webgpu.h>
 
@@ -13,12 +14,17 @@ export module cpp_matrix:matrix;
 import :adapter;
 import :promise;
 import :ref_ptr;
+import :gpu_matrix;
+import :host_matrix;
 
 namespace cpp_matrix {
 
 export class Matrix {
 public:
-    Matrix() = default;
+    Matrix()
+        : m_matrix { GpuMatrix {} }
+    {
+    }
 
     Matrix(size_t row, size_t column, Adapter adapter, WGPUBuffer buffer)
         : m_row { row }
@@ -97,15 +103,35 @@ public:
 
     size_t Row() const
     {
-        return m_row;
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Row();
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Row();
+        }
     }
 
     size_t Column() const
     {
-        return m_column;
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Column();
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Column();
+        }
+    }
+
+    Matrix& operator=(float f)
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            p->operator=(f);
+        } else {
+            std::get<GpuMatrix>(m_matrix).operator=(f);
+        }
+        return *this;
     }
 
 private:
+    std::variant<HostMatrix, GpuMatrix> m_matrix {};
+
     Promise<Matrix> DotWithNoSplication(const Matrix& other)
     {
         auto output = m_adapter.CreateMatrix(m_row, other.m_column);
@@ -126,20 +152,13 @@ fn main() {{
 
     std::string GetWgslType() const
     {
-        if (m_row == 1 && m_column == 1)
-        {
+        if (m_row == 1 && m_column == 1) {
             return "f32";
-        }
-        else if (m_row == 1)
-        {
+        } else if (m_row == 1) {
             return std::format("array<f32, {}>", m_column);
-        }
-        else if (m_column == 1)
-        {
+        } else if (m_column == 1) {
             return std::format("vec{}f", m_row);
-        }
-        else
-        {
+        } else {
             return std::format("mat{}x{}f", m_column, m_row);
         }
     }
