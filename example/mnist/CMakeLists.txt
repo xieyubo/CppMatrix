@@ -5,5 +5,5 @@ target_sources(mnist PUBLIC FILE_SET CXX_MODULES FILES
     network.cpp
 )
 target_link_libraries(mnist PRIVATE
-    gpu_matrix
+    cpp_matrix
 )

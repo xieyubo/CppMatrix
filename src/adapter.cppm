@@ -5,11 +5,11 @@ module;
 #include <utility>
 #include <webgpu/webgpu.h>
 
-export module gpu_matrix:adapter;
+export module cpp_matrix:adapter;
 import :promise;
 import :ref_ptr;
 
-namespace gpu_matrix {
+namespace cpp_matrix {
 
 export class Matrix;
 

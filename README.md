@@ -1,4 +1,4 @@
-C++ Neural Network
+CppMatrix
 ==
 
 ## Install Dependencies:

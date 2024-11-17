@@ -2,9 +2,9 @@ module;
 
 #include <cstddef>
 
-export module gpu_matrix:ref_ptr;
+export module cpp_matrix:ref_ptr;
 
-namespace gpu_matrix {
+namespace cpp_matrix {
 
 export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle), void (*GPURelease)(TGPUNativeHandle)>
 class ref_ptr {

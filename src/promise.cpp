@@ -4,9 +4,11 @@ module;
 #include <future>
 #include <mutex>
 
-export module gpu_matrix:promise;
+export module cpp_matrix:promise;
 
-namespace gpu_matrix {
+namespace cpp_matrix {
+
+void ProcessGpuInstanceEvents();
 
 export template <typename T>
 class PromiseState {
@@ -100,7 +102,13 @@ public:
 
     void await_suspend(std::coroutine_handle<> h) { m_pState->SetCoroutineHandle(std::move(h)); }
 
-    T await_resume() { return m_pState->GetValue(); }
+    T await_resume()
+    {
+        while (!await_ready()) {
+            ProcessGpuInstanceEvents();
+        }
+        return m_pState->GetValue();
+    }
 
     std::unique_ptr<std::shared_ptr<PromiseState<T>>> GetState()
     {
@@ -148,7 +156,13 @@ public:
 
     void await_suspend(std::coroutine_handle<> h) { m_pState->SetCoroutineHandle(std::move(h)); }
 
-    void await_resume() { m_pState->GetValue(); }
+    void await_resume()
+    {
+        while (!await_ready()) {
+            ProcessGpuInstanceEvents();
+        }
+        m_pState->GetValue();
+    }
 
     std::unique_ptr<std::shared_ptr<PromiseState<void>>> GetState()
     {

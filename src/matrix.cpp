@@ -9,12 +9,12 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-export module gpu_matrix:matrix;
+export module cpp_matrix:matrix;
 import :adapter;
 import :promise;
 import :ref_ptr;
 
-namespace gpu_matrix {
+namespace cpp_matrix {
 
 export class Matrix {
 public:
@@ -109,7 +109,7 @@ private:
     Promise<Matrix> DotWithNoSplication(const Matrix& other)
     {
         auto output = m_adapter.CreateMatrix(m_row, other.m_column);
-        auto k = std::vector<gpu_matrix::Matrix> { *this, other, output };
+        auto k = std::vector<cpp_matrix::Matrix> { *this, other, output };
         auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input1: {};
 @group(0) @binding(1) var<storage, read_write> input2: {};

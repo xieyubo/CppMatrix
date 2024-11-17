@@ -1,6 +1,6 @@
 module;
 
-export module gpu_matrix;
+export module cpp_matrix;
 export import :adapter;
 export import :gpu_instance;
 export import :log;
