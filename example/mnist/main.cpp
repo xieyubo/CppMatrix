@@ -6,13 +6,15 @@ import network;
 
 cnn::Promise<void> co_main(cnn::Instance instance)
 {
-    const size_t kInputNodes = 784;
-    const size_t kHiddenNodes = 200;
-    const size_t kOutputNodes = 10;
+    const size_t kInputNodes = 3;//784;
+    const size_t kHiddenNodes = 4; //200;
+    const size_t kOutputNodes = 3; //10;
     const float kLearningRate = 0.1f;
 
     auto network = Network { std::move(instance), kInputNodes, kHiddenNodes, kOutputNodes, kLearningRate };
-    co_return;
+
+    std::vector<float> input {1, 2, 3};
+    co_await network.Train(std::move(input), {});
 }
 
 int main()

@@ -32,14 +32,16 @@ public:
             throw std::runtime_error { "input size is incorrect." };
         }
 
-        if (target.size() != m_outputNodes) {
+        /*if (target.size() != m_outputNodes) {
             throw std::runtime_error { "output size is incorrect." };
-        }
+        }*/
 
         auto inputTensor = m_adapter.CreateMatrix(m_inputNodes, 1 );
         inputTensor.Write(std::span<float> { input.begin(), input.end() });
 
-        // auto tmp = m_weightIH * inputTensor;
+        auto res = co_await (m_weightIH * inputTensor);
+        auto data = co_await res.Read();
+        co_return;
     }
 
 private:
@@ -50,11 +52,11 @@ private:
         }
 
         if (!m_weightIH) {
-            m_weightIH = GenerateWeights(m_inputNodes, m_hiddenNodes);
+            m_weightIH = GenerateWeights(m_hiddenNodes, m_inputNodes);
         }
 
         if (!m_weightHO) {
-            m_weightHO = GenerateWeights(m_hiddenNodes, m_outputNodes);
+            m_weightHO = GenerateWeights(m_outputNodes, m_hiddenNodes);
         }
     }
 
@@ -66,7 +68,7 @@ private:
         std::vector<float> data {};
         data.resize(row * column);
         for (auto i = 0u; i < data.size(); ++i) {
-            data[i] = (float)((double)std::rand() / RAND_MAX);
+            data[i] = i + 1;//(float)((double)std::rand() / RAND_MAX);
         }
 
         // Create tensor.

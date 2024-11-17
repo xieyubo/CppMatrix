@@ -1,7 +1,10 @@
 module;
 
 #include <coroutine>
+#include <cstdlib>
+#include <format>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <webgpu/webgpu.h>
@@ -76,13 +79,71 @@ public:
         return m_pBuffer;
     }
 
-    Matrix operator*(const Matrix& other)
+    Promise<Matrix> operator*(const Matrix& other)
     {
-        return {};
-        //auto row = m_dimension.
+        if (m_column != other.m_row) {
+            throw std::runtime_error { "Can't dot two matrixs" };
+        }
+
+        // The max dimension supported by wgsl is 4x4, so if the matrix dimension is bigger than it,
+        // we need split it.
+        if (m_row <= 4 && m_column <= 4 && other.m_column <= 4) {
+            // Perfect, no need split.
+            return DotWithNoSplication(other);
+        } else {
+            throw std::runtime_error { "not supported" };
+        }
+    }
+
+    size_t Row() const
+    {
+        return m_row;
+    }
+
+    size_t Column() const
+    {
+        return m_column;
     }
 
 private:
+    Promise<Matrix> DotWithNoSplication(const Matrix& other)
+    {
+        auto output = m_adapter.CreateMatrix(m_row, other.m_column);
+        auto k = std::vector<cnn::Matrix> { *this, other, output };
+        auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = input1 * input2;
+}}
+)",
+            GetWgslType(), other.GetWgslType(), output.GetWgslType());
+        co_await m_adapter.Run(code.c_str(), { k.begin(), k.end() }, 1);
+        co_return output;
+    }
+
+    std::string GetWgslType() const
+    {
+        if (m_row == 1 && m_column == 1)
+        {
+            return "f32";
+        }
+        else if (m_row == 1)
+        {
+            return std::format("array<f32, {}>", m_column);
+        }
+        else if (m_column == 1)
+        {
+            return std::format("vec{}f", m_row);
+        }
+        else
+        {
+            return std::format("mat{}x{}f", m_column, m_row);
+        }
+    }
+
     size_t m_row {};
     size_t m_column {};
     Adapter m_adapter {};
