@@ -1,7 +1,9 @@
 module;
 
 #include <coroutine>
+#include <format>
 #include <span>
+#include <stdexcept>
 #include <vector>
 #include <webgpu/webgpu.h>
 
@@ -55,7 +57,28 @@ public:
 
     operator bool() const
     {
-        return m_pBuffer; 
+        return m_pBuffer;
+    }
+
+    GpuMatrix operator*(const GpuMatrix& other)
+    {
+        if (m_column != other.m_row) {
+            throw std::runtime_error { "Can't dot two matrixs" };
+        }
+
+        // The max dimension supported by wgsl is 4x4, so if the matrix dimension is bigger than it,
+        // we need split it.
+        if (m_row <= 4 && m_column <= 4 && other.m_column <= 4) {
+            // Perfect, no need split.
+            return DotWithNoSplication(other).await_resume();
+        } else {
+            throw std::runtime_error { "not supported" };
+        }
+    }
+
+    size_t SizeInBytes() const
+    {
+        return sizeof(float) * m_row * m_column;
     }
 
     Promise<std::vector<float>> Read()
@@ -91,6 +114,41 @@ public:
     }
 
 private:
+    Promise<GpuMatrix> DotWithNoSplication(const GpuMatrix& other)
+    {
+        /*
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto output = GpuMatrix { m_row, other.m_column };
+        auto k = std::vector<GpuMatrix> { *this, other, output };
+        auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = input1 * input2;
+}}
+)",
+            GetWgslType(), other.GetWgslType(), output.GetWgslType());
+        co_await adapter.Run(code.c_str(), { k.begin(), k.end() }, 1);
+        co_return output;
+    }
+
+    std::string GetWgslType() const
+    {
+        if (m_row == 1 && m_column == 1) {
+            return "f32";
+        } else if (m_row == 1) {
+            return std::format("array<f32, {}>", m_column);
+        } else if (m_column == 1) {
+            return std::format("vec{}f", m_row);
+        } else {
+            return std::format("mat{}x{}f", m_column, m_row);
+        }
+        */
+       return {};
+    }
+
     size_t m_row {};
     size_t m_column {};
     ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};

@@ -7,20 +7,10 @@ module;
 #include <webgpu/webgpu.h>
 
 module cpp_matrix;
-import :matrix;
+import :gpu_matrix;
 import :promise;
 
 namespace cpp_matrix {
-
-Matrix Adapter::CreateMatrix(size_t row, size_t column)
-{
-    auto bufferDesc = WGPUBufferDescriptor {
-        .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-        .size = sizeof(float) * row * column,
-    };
-
-    return { row, column, *this, wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
-}
 
 Promise<void> Adapter::Run(const char* shaderScript, std::span<Matrix> buffers, size_t batchSize)
 {

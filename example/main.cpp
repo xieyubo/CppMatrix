@@ -37,6 +37,8 @@ fn main(
 
 import cpp_matrix;
 
+using namespace cpp_matrix;
+
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
 cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
@@ -52,8 +54,8 @@ cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
     printf("...\n");
 
     auto adapter = instance.GetAdapter();
-    auto input = adapter.CreateMatrix(1, N);
-    auto output = adapter.CreateMatrix(1, N);
+    auto input = Matrix { 1, N };
+    auto output = Matrix { 1, N };
 
     input.Write(std::span { inputArr });
 

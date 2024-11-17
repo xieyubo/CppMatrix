@@ -12,6 +12,7 @@ import :ref_ptr;
 namespace cpp_matrix {
 
 export class Matrix;
+export class GpuMatrix;
 
 export class Adapter {
 public:
@@ -33,8 +34,6 @@ public:
 
         return ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
     }
-
-    Matrix CreateMatrix(size_t row, size_t column);
 
     WGPUDevice GetDevice() const
     {

@@ -36,10 +36,10 @@ public:
             throw std::runtime_error { "output size is incorrect." };
         }*/
 
-        auto inputTensor = m_adapter.CreateMatrix(m_inputNodes, 1 );
+        auto inputTensor = Matrix { m_inputNodes, 1 };
         inputTensor.Write(std::span<float> { input.begin(), input.end() });
 
-        auto res = co_await (m_weightIH * inputTensor);
+        auto res = m_weightIH * inputTensor;
         auto data = co_await res.Read();
         co_return;
     }
@@ -70,11 +70,11 @@ private:
         std::vector<float> data {};
         data.resize(row * column);
         for (auto i = 0u; i < data.size(); ++i) {
-            data[i] = i + 1;//(float)((double)std::rand() / RAND_MAX);
+            data[i] = i + 1; //(float)((double)std::rand() / RAND_MAX);
         }
 
         // Create tensor.
-        auto weights = m_adapter.CreateMatrix(row, column);
+        auto weights = Matrix { row, column };
         weights.Write(std::span { data.begin(), data.end() });
         return weights;
     }

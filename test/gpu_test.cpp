@@ -37,8 +37,8 @@ fn main(
         }
 
         auto adapter = instance.GetAdapter();
-        auto input = adapter.CreateMatrix(1, N);
-        auto output = Matrix { 1, N};
+        auto input = Matrix { 1, N };
+        auto output = Matrix { 1, N };
 
         input.Write(std::span { inputArr });
 
