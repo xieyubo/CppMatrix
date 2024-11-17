@@ -12,7 +12,7 @@ import :promise;
 
 namespace cpp_matrix {
 
-Promise<void> Adapter::Run(const char* shaderScript, std::span<Matrix> buffers, size_t batchSize)
+Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffers, size_t batchSize)
 {
     // Create layout entries for buffers.
     auto layoutEntries = std::vector<WGPUBindGroupLayoutEntry>(buffers.size());

@@ -41,7 +41,7 @@ using namespace cpp_matrix;
 
 inline size_t cdiv(size_t n, size_t d) { return (n + d - 1) / d; }
 
-cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
+Promise<void> co_main(GpuInstance instance)
 {
     constexpr size_t N = 3072;
     std::array<float, N> inputArr, outputArr;
@@ -54,12 +54,12 @@ cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
     printf("...\n");
 
     auto adapter = instance.GetAdapter();
-    auto input = Matrix { 1, N };
-    auto output = Matrix { 1, N };
+    auto input = GpuMatrix { 1, N };
+    auto output = GpuMatrix { 1, N };
 
     input.Write(std::span { inputArr });
 
-    auto k = std::vector<cpp_matrix::Matrix> { input, output };
+    auto k = std::vector<GpuMatrix> { input, output };
     co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
     auto o = co_await output.Read();
@@ -72,6 +72,6 @@ cpp_matrix::Promise<void> co_main(cpp_matrix::GpuInstance instance)
 
 int main()
 {
-    co_main(cpp_matrix::GpuInstance().GetInstance()).await_resume();
+    co_main(GpuInstance().GetInstance()).await_resume();
     return 0;
 }

@@ -11,7 +11,7 @@ TEST(GpuTest, GELU)
 {
     std::vector<float> res;
 
-    auto func = [&res](cpp_matrix::GpuInstance instance) -> cpp_matrix::Promise<void> {
+    auto func = [&res](GpuInstance instance) -> cpp_matrix::Promise<void> {
         constexpr const char* kShaderGELU = R"(
 const GELU_SCALING_FACTOR: f32 = 0.7978845608028654; // sqrt(2.0 / PI)
 @group(0) @binding(0) var<storage, read_write> inp: array<f32>;
@@ -37,12 +37,12 @@ fn main(
         }
 
         auto adapter = instance.GetAdapter();
-        auto input = Matrix { 1, N };
-        auto output = Matrix { 1, N };
+        auto input = GpuMatrix { 1, N };
+        auto output = GpuMatrix { 1, N };
 
         input.Write(std::span { inputArr });
 
-        auto k = std::vector<cpp_matrix::Matrix> { input, output };
+        auto k = std::vector<GpuMatrix> { input, output };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
         res = co_await output.Read();

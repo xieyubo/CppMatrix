@@ -47,11 +47,6 @@ public:
         return std::get<GpuMatrix>(m_matrix).SizeInBytes();
     }
 
-    WGPUBuffer GetBuffer() const
-    {
-        return std::get<GpuMatrix>(m_matrix).GetBuffer();
-    }
-
     operator bool() const
     {
         return std::get<GpuMatrix>(m_matrix).operator bool();

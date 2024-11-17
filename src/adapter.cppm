@@ -45,7 +45,7 @@ public:
         return m_pQueue.get();
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Matrix> buffers, size_t batchSize);
+    Promise<void> Run(const char* shaderScript, std::span<GpuMatrix> buffers, size_t batchSize);
 
     operator bool() const
     {
