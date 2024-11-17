@@ -40,7 +40,7 @@ public:
         inputTensor.Write(std::span<float> { input.begin(), input.end() });
 
         auto res = m_weightIH * inputTensor;
-        auto data = co_await res.Read();
+        auto data = res.Read();
         co_return;
     }
 

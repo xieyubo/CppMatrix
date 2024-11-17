@@ -29,6 +29,11 @@ public:
         return *this;
     }
 
+    std::vector<float> Read() const
+    {
+        return m_data;
+    }
+
 private:
     size_t m_row {};
     size_t m_column {};

@@ -81,7 +81,13 @@ public:
         return sizeof(float) * m_row * m_column;
     }
 
-    Promise<std::vector<float>> Read()
+    std::vector<float> Read() const
+    {
+        return ReadAsync().await_resume();
+    }
+
+private:
+    Promise<std::vector<float>> ReadAsync() const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
 
@@ -112,8 +118,6 @@ public:
         wgpuBufferUnmap(pReadbackBuffer.get());
         co_return out;
     }
-
-private:
     Promise<GpuMatrix> DotWithNoSplication(const GpuMatrix& other)
     {
         /*
@@ -146,7 +150,7 @@ fn main() {{
             return std::format("mat{}x{}f", m_column, m_row);
         }
         */
-       return {};
+        return {};
     }
 
     size_t m_row {};

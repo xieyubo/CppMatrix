@@ -62,7 +62,7 @@ Promise<void> co_main(GpuInstance instance)
     auto k = std::vector<GpuMatrix> { input, output };
     co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
-    auto o = co_await output.Read();
+    auto o = output.Read();
     for (auto i = 0u; i < 10; ++i) {
         printf("read from output[%d]: %f\n", i, o[i]);
     }

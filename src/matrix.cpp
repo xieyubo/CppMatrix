@@ -37,14 +37,18 @@ public:
         return std::get<GpuMatrix>(m_matrix).Write(std::move(data));
     }
 
-    Promise<std::vector<float>> Read()
+    std::vector<float> Read()
     {
-        return std::get<GpuMatrix>(m_matrix).Read();
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Read();
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Read();
+        }
     }
 
     size_t SizeInBytes() const
     {
-        return std::get<GpuMatrix>(m_matrix).SizeInBytes();
+        return sizeof(float) * Row() * Column();
     }
 
     operator bool() const

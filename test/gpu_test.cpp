@@ -45,7 +45,7 @@ fn main(
         auto k = std::vector<GpuMatrix> { input, output };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
-        res = co_await output.Read();
+        res = output.Read();
         co_return;
     };
 
