@@ -60,7 +60,7 @@ public:
         return m_pBuffer;
     }
 
-    GpuMatrix operator*(const GpuMatrix& other)
+    GpuMatrix operator*(const GpuMatrix& other) const
     {
         if (m_column != other.m_row) {
             throw std::runtime_error { "Can't dot two matrixs" };
@@ -118,7 +118,8 @@ private:
         wgpuBufferUnmap(pReadbackBuffer.get());
         co_return out;
     }
-    Promise<GpuMatrix> DotWithNoSplication(const GpuMatrix& other)
+
+    Promise<GpuMatrix> DotWithNoSplication(const GpuMatrix& other) const
     {
         /*
         auto adapter = GpuInstance::GetInstance().GetAdapter();

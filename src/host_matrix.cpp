@@ -34,6 +34,12 @@ public:
         return m_data;
     }
 
+    HostMatrix operator*(const HostMatrix& other) const
+    {
+        // TODO
+        return {};
+    }
+
 private:
     size_t m_row {};
     size_t m_column {};

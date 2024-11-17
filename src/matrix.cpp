@@ -1,19 +1,10 @@
 module;
 
-#include <coroutine>
-#include <cstdlib>
-#include <format>
 #include <span>
-#include <stdexcept>
-#include <utility>
 #include <variant>
 #include <vector>
-#include <webgpu/webgpu.h>
 
 export module cpp_matrix:matrix;
-import :adapter;
-import :promise;
-import :ref_ptr;
 import :gpu_matrix;
 import :host_matrix;
 
@@ -37,7 +28,7 @@ public:
         return std::get<GpuMatrix>(m_matrix).Write(std::move(data));
     }
 
-    std::vector<float> Read()
+    std::vector<float> Read() const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
             return p->Read();
@@ -53,12 +44,16 @@ public:
 
     operator bool() const
     {
-        return std::get<GpuMatrix>(m_matrix).operator bool();
+        return SizeInBytes() != 0;
     }
 
-    Matrix operator*(const Matrix& other)
+    Matrix operator*(const Matrix& other) const
     {
-        std::get<GpuMatrix>(m_matrix).operator*(std::get<GpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            p->operator*(std::get<HostMatrix>(other.m_matrix));
+        } else {
+            std::get<GpuMatrix>(m_matrix).operator*(std::get<GpuMatrix>(other.m_matrix));
+        }
         return *this;
     }
 
