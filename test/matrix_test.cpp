@@ -5,7 +5,19 @@ import cpp_matrix;
 
 using namespace cpp_matrix;
 
-TEST(MatrixTest, DefaultConstructor)
+class MatrixTest : public testing::Test {
+public:
+    MatrixTest()
+    {
+        Matrix::SetDefaultMatrixType(MatrixType::Auto);
+    }
+};
+
+#ifndef MATRIX_TEST
+#define MATRIX_TEST(X) TEST_F(MatrixTest, X)
+#endif
+
+MATRIX_TEST(DefaultConstructor)
 {
     Matrix x {};
     ASSERT_EQ(x.Row(), 0);
@@ -13,7 +25,7 @@ TEST(MatrixTest, DefaultConstructor)
     ASSERT_FALSE(!!x);
 }
 
-TEST(MatrixTest, SetAbsoluteFloat)
+MATRIX_TEST(SetAbsoluteFloat)
 {
     Matrix x {};
     x = 1.123f;

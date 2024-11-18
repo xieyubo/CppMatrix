@@ -1,6 +1,8 @@
 add_executable(gpu_test
     gpu_test.cpp
     matrix_test.cpp
+    gpu_matrix_test.cpp
+    host_matrix_test.cpp
 )
 target_link_libraries(gpu_test
     cpp_matrix

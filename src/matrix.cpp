@@ -10,15 +10,26 @@ import :host_matrix;
 
 namespace cpp_matrix {
 
+export enum class MatrixType {
+    Auto,
+    GpuMatrix,
+    HostMatrix,
+};
+
 export class Matrix {
 public:
+    static void SetDefaultMatrixType(MatrixType type)
+    {
+        s_defaultMatrixType = type;
+    }
+
     Matrix()
-        : m_matrix { GpuMatrix {} }
+        : Matrix { 0, 0 }
     {
     }
 
-    Matrix(size_t row, size_t column)
-        : m_matrix { GpuMatrix { row, column } }
+    Matrix(size_t row, size_t column, MatrixType type = MatrixType::Auto)
+        : m_matrix { CreateMatrix(type, row, column) }
     {
     }
 
@@ -86,7 +97,30 @@ public:
     }
 
 private:
+    static MatrixType s_defaultMatrixType;
+
+    template <typename... Args>
+    static std::variant<HostMatrix, GpuMatrix> CreateMatrix(MatrixType type, Args&&... args)
+    {
+        if (type == MatrixType::Auto) {
+            type = s_defaultMatrixType;
+        }
+
+        if (type == MatrixType::Auto) {
+            // TODO: detect whether webgpu is avaliable or not.
+            type = MatrixType::GpuMatrix;
+        }
+
+        if (type == MatrixType::GpuMatrix) {
+            return GpuMatrix { std::forward<Args>(args)... };
+        } else {
+            return HostMatrix { std::forward<Args>(args)... };
+        }
+    }
+
     std::variant<HostMatrix, GpuMatrix> m_matrix {};
 };
+
+MatrixType Matrix::s_defaultMatrixType { MatrixType::Auto };
 
 }

@@ -10,6 +10,13 @@ export class HostMatrix {
 public:
     HostMatrix() = default;
 
+    HostMatrix(size_t row, size_t column)
+        : m_row { row }
+        , m_column { column }
+        , m_data(row * column)
+    {
+    }
+
     size_t Row() const
     {
         return m_row;
