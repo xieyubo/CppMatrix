@@ -35,17 +35,17 @@ public:
         return m_column;
     }
 
-    GpuMatrix& operator=(float f)
-    {
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
-        m_pBuffer = adapter.CreateBuffer(m_row = 1, m_column = 1);
-        wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, &f, sizeof(f));
-        return *this;
-    }
-
     WGPUBuffer GetBuffer() const
     {
         return m_pBuffer.get();
+    }
+
+    GpuMatrix& operator=(std::vector<float> data)
+    {
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        m_pBuffer = adapter.CreateBuffer(m_row = 1, m_column = data.size());
+        wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, data.data(), sizeof(float) * data.size());
+        return *this;
     }
 
     template <size_t N>

@@ -86,14 +86,25 @@ public:
         }
     }
 
-    Matrix& operator=(float f)
+    Matrix& operator=(std::vector<float> data)
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
-            p->operator=(f);
+            p->operator=(std::move(data));
         } else {
-            std::get<GpuMatrix>(m_matrix).operator=(f);
+            std::get<GpuMatrix>(m_matrix).operator=(std::move(data));
         }
         return *this;
+    }
+
+    Matrix& operator=(float f)
+    {
+        return operator=(std::vector<float> { f });
+    }
+
+    template <size_t Extent = std::dynamic_extent>
+    Matrix& operator=(std::span<float, Extent> data)
+    {
+        return operator=(std::vector<float> { data.begin(), data.end() });
     }
 
 private:

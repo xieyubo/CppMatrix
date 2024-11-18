@@ -25,7 +25,7 @@ MATRIX_TEST(DefaultConstructor)
     ASSERT_FALSE(!!x);
 }
 
-MATRIX_TEST(SetAbsoluteFloat)
+MATRIX_TEST(SetAbsoluteValue)
 {
     Matrix x {};
     x = 1.123f;
@@ -36,4 +36,72 @@ MATRIX_TEST(SetAbsoluteFloat)
     auto data = x.Read();
     ASSERT_EQ(data.size(), 1);
     ASSERT_FLOAT_EQ(data[0], 1.123f);
+}
+
+MATRIX_TEST(SetVector)
+{
+    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
+
+    Matrix x {};
+    x = initData;
+    ASSERT_TRUE(x);
+    ASSERT_EQ(x.Row(), 1);
+    ASSERT_EQ(x.Column(), 3);
+
+    auto data = x.Read();
+    ASSERT_EQ(data.size(), 3);
+    ASSERT_FLOAT_EQ(data[0], 1.0f);
+    ASSERT_FLOAT_EQ(data[1], 1.2f);
+    ASSERT_FLOAT_EQ(data[2], 1.3f);
+}
+
+MATRIX_TEST(SetInitializeList)
+{
+    Matrix x {};
+    x = std::initializer_list<float> { 1.0f, 1.2f, 1.3f };
+    ASSERT_TRUE(x);
+    ASSERT_EQ(x.Row(), 1);
+    ASSERT_EQ(x.Column(), 3);
+
+    auto data = x.Read();
+    ASSERT_EQ(data.size(), 3);
+    ASSERT_FLOAT_EQ(data[0], 1.0f);
+    ASSERT_FLOAT_EQ(data[1], 1.2f);
+    ASSERT_FLOAT_EQ(data[2], 1.3f);
+}
+
+MATRIX_TEST(SetSpan1)
+{
+    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
+    auto span = std::span<float, 3> { initData };
+
+    Matrix x {};
+    x = span;
+    ASSERT_TRUE(x);
+    ASSERT_EQ(x.Row(), 1);
+    ASSERT_EQ(x.Column(), 3);
+
+    auto data = x.Read();
+    ASSERT_EQ(data.size(), 3);
+    ASSERT_FLOAT_EQ(data[0], 1.0f);
+    ASSERT_FLOAT_EQ(data[1], 1.2f);
+    ASSERT_FLOAT_EQ(data[2], 1.3f);
+}
+
+MATRIX_TEST(SetSpan2)
+{
+    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
+    auto span = std::span<float> { initData };
+
+    Matrix x {};
+    x = span;
+    ASSERT_TRUE(x);
+    ASSERT_EQ(x.Row(), 1);
+    ASSERT_EQ(x.Column(), 3);
+
+    auto data = x.Read();
+    ASSERT_EQ(data.size(), 3);
+    ASSERT_FLOAT_EQ(data[0], 1.0f);
+    ASSERT_FLOAT_EQ(data[1], 1.2f);
+    ASSERT_FLOAT_EQ(data[2], 1.3f);
 }

@@ -27,12 +27,11 @@ public:
         return m_column;
     }
 
-    HostMatrix& operator=(float f)
+    HostMatrix& operator=(std::vector<float> data)
     {
         m_row = 1;
-        m_column = 1;
-        m_data.resize(1);
-        m_data[0] = f;
+        m_column = data.size();
+        m_data = std::move(data);
         return *this;
     }
 
