@@ -10,7 +10,7 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/webgpu/libdawn.so)
         SHOW_PROGRESS)
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(-g)

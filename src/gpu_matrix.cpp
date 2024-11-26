@@ -86,6 +86,42 @@ public:
         return ReadAsync().await_resume();
     }
 
+    float operator[](size_t row, size_t column) const
+    {
+        if (row >= m_row || column >= m_column) {
+            throw std::runtime_error { "Out of range" };
+        }
+
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+
+        auto bufferSize = sizeof(float) * m_row * m_column;
+
+        auto readbackBufferDescriptor = WGPUBufferDescriptor {
+            .usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead,
+            .size = bufferSize,
+        };
+
+        auto pReadbackBuffer = ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(adapter.GetDevice(), &readbackBufferDescriptor) };
+
+        auto commandEncoder = wgpuDeviceCreateCommandEncoder(adapter.GetDevice(), nullptr);
+        wgpuCommandEncoderCopyBufferToBuffer(commandEncoder, m_pBuffer.get(), 0, pReadbackBuffer.get(), 0, bufferSize);
+        auto commandBuffer = wgpuCommandEncoderFinish(commandEncoder, nullptr);
+
+        auto submitPromise = Promise<void>();
+        wgpuQueueSubmit(adapter.GetQueue(), 1, &commandBuffer);
+        wgpuQueueOnSubmittedWorkDone(adapter.GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { (*Promise<void>::GetState(callbackData))->SetValue(); }, submitPromise.GetState().release());
+        submitPromise.await_resume();
+
+        auto mapPromise = Promise<void>();
+        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { (*Promise<void>::GetState(captureData))->SetValue(); }, mapPromise.GetState().release());
+        mapPromise.await_resume();
+
+        const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
+        auto res = pMappedData[row * m_column + column];
+        wgpuBufferUnmap(pReadbackBuffer.get());
+        return res;
+    }
+
 private:
     Promise<std::vector<float>> ReadAsync() const
     {

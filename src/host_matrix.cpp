@@ -1,5 +1,6 @@
 module;
 
+#include <stdexcept>
 #include <vector>
 
 export module cpp_matrix:host_matrix;
@@ -35,6 +36,15 @@ public:
         return *this;
     }
 
+    void Write(std::vector<float> data)
+    {
+        if (m_row * m_column != data.size()) {
+            throw std::runtime_error { "Elements size is not the same." };
+        }
+
+        m_data = std::move(data);
+    }
+
     std::vector<float> Read() const
     {
         return m_data;
@@ -44,6 +54,15 @@ public:
     {
         // TODO
         return {};
+    }
+
+    float operator[](size_t row, size_t column) const
+    {
+        if (row >= m_row || column >= m_column) {
+            throw std::runtime_error { "Out of range" };
+        }
+
+        return m_data[row * m_column + column];
     }
 
 private:

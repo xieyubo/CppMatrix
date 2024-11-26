@@ -1,6 +1,7 @@
 module;
 
 #include <span>
+#include <stdexcept>
 #include <variant>
 #include <vector>
 
@@ -36,7 +37,11 @@ public:
     template <size_t N>
     void Write(std::span<float, N> data)
     {
-        return std::get<GpuMatrix>(m_matrix).Write(std::move(data));
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Write(std::vector<float> { data.begin(), data.end() });
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Write(data);
+        }
     }
 
     std::vector<float> Read() const
@@ -105,6 +110,15 @@ public:
     Matrix& operator=(std::span<float, Extent> data)
     {
         return operator=(std::vector<float> { data.begin(), data.end() });
+    }
+
+    float operator[](size_t row, size_t column) const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->operator[](row, column);
+        } else {
+            return std::get<GpuMatrix>(m_matrix).operator[](row, column);
+        }
     }
 
 private:

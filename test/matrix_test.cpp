@@ -105,3 +105,26 @@ MATRIX_TEST(SetSpan2)
     ASSERT_FLOAT_EQ(data[1], 1.2f);
     ASSERT_FLOAT_EQ(data[2], 1.3f);
 }
+
+MATRIX_TEST(ReadByRowAndColumn)
+{
+    Matrix x { 3, 2 };
+
+    std::vector<float> initData {
+        1.0f, 1.1f,
+        2.0f, 2.2f,
+        3.0f, 3.3f,
+    };
+
+    x.Write(std::span<float> { initData });
+    ASSERT_TRUE(x);
+    ASSERT_EQ(x.Row(), 3);
+    ASSERT_EQ(x.Column(), 2);
+
+    ASSERT_FLOAT_EQ((x[0, 0]), 1.0f);
+    ASSERT_FLOAT_EQ((x[0, 1]), 1.1f);
+    ASSERT_FLOAT_EQ((x[1, 0]), 2.0f);
+    ASSERT_FLOAT_EQ((x[1, 1]), 2.2f);
+    ASSERT_FLOAT_EQ((x[2, 0]), 3.0f);
+    ASSERT_FLOAT_EQ((x[2, 1]), 3.3f);
+}
