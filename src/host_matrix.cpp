@@ -50,6 +50,22 @@ public:
         return m_data;
     }
 
+    HostMatrix operator+(const HostMatrix& other) const
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        HostMatrix res { m_row, m_column };
+        auto* pR = res.m_data.data();
+        auto* p1 = m_data.data();
+        auto* p2 = other.m_data.data();
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            *pR++ = *p1++ + *p2++;
+        }
+        return res;
+    }
+
     HostMatrix operator*(const HostMatrix& other) const
     {
         // TODO
@@ -63,6 +79,11 @@ public:
         }
 
         return m_data[row * m_column + column];
+    }
+
+    size_t BufferSize() const
+    {
+        return sizeof(float) * m_row * m_column;
     }
 
 private:

@@ -22,7 +22,7 @@ Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffer
             .visibility = WGPUShaderStage_Compute,
             .buffer = WGPUBufferBindingLayout {
                 .type = WGPUBufferBindingType_Storage,
-                .minBindingSize = buffers[i].SizeInBytes(),
+                .minBindingSize = buffers[i].BufferSize(),
             },
         };
     }
@@ -40,7 +40,7 @@ Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffer
         bindGroupEntries[i] = WGPUBindGroupEntry {
             .binding = i,
             .buffer = buffers[i].GetBuffer(),
-            .size = buffers[i].SizeInBytes(),
+            .size = buffers[i].BufferSize(),
         };
     }
 

@@ -53,14 +53,18 @@ public:
         }
     }
 
-    size_t SizeInBytes() const
-    {
-        return sizeof(float) * Row() * Column();
-    }
-
     operator bool() const
     {
-        return SizeInBytes() != 0;
+        return Row() && Column();
+    }
+
+    Matrix operator+(const Matrix& other) const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->operator+(std::get<HostMatrix>(other.m_matrix));
+        } else {
+            return std::get<GpuMatrix>(m_matrix).operator+(std::get<GpuMatrix>(other.m_matrix));
+        }
     }
 
     Matrix operator*(const Matrix& other) const
@@ -141,6 +145,16 @@ private:
         } else {
             return HostMatrix { std::forward<Args>(args)... };
         }
+    }
+
+    Matrix(HostMatrix m)
+        : m_matrix { std::move(m) }
+    {
+    }
+
+    Matrix(GpuMatrix m)
+        : m_matrix { std::move(m) }
+    {
     }
 
     std::variant<HostMatrix, GpuMatrix> m_matrix {};

@@ -21,8 +21,9 @@ public:
         : m_row { row }
         , m_column { column }
     {
+        m_paddingRow = m_row == 3 && m_column != 1 ? 4 : m_row;
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        m_pBuffer = adapter.CreateBuffer(m_row, m_column);
+        m_pBuffer = adapter.CreateBuffer(m_paddingRow, m_column);
     }
 
     size_t Row() const
@@ -40,10 +41,15 @@ public:
         return m_pBuffer.get();
     }
 
+    size_t BufferSize() const
+    {
+        return sizeof(float) * m_paddingRow * m_column;
+    }
+
     GpuMatrix& operator=(std::vector<float> data)
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        m_pBuffer = adapter.CreateBuffer(m_row = 1, m_column = data.size());
+        m_pBuffer = adapter.CreateBuffer(m_paddingRow = m_row = 1, m_column = data.size());
         wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, data.data(), sizeof(float) * data.size());
         return *this;
     }
@@ -52,7 +58,18 @@ public:
     void Write(std::span<float, N> data)
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, data.data(), data.size_bytes());
+
+        if (m_row == 1 || m_column == 1) {
+            wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, data.data(), data.size_bytes());
+        } else {
+            std::vector<float> tmp(m_paddingRow * m_column);
+            for (auto y = 0u; y < m_row; ++y) {
+                for (auto x = 0u; x < m_column; ++x) {
+                    tmp.data()[x * m_paddingRow + y] = data.data()[y * m_column + x];
+                }
+            }
+            wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(float) * tmp.size());
+        }
     }
 
     operator bool() const
@@ -76,9 +93,31 @@ public:
         }
     }
 
-    size_t SizeInBytes() const
+    GpuMatrix operator+(const GpuMatrix& other) const
     {
-        return sizeof(float) * m_row * m_column;
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        if (m_row > 4 || m_column > 4) {
+            throw std::runtime_error { "Shape is not supported." };
+        }
+
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto output = GpuMatrix { m_row, m_column };
+        auto k = std::vector<GpuMatrix> { *this, other, output };
+        auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = input1 + input2;
+}}
+)",
+            GetWgslType(), other.GetWgslType(), output.GetWgslType());
+        adapter.Run(code.c_str(), { k.begin(), k.end() }, 1).await_resume();
+        return output;
     }
 
     std::vector<float> Read() const
@@ -94,7 +133,7 @@ public:
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
 
-        auto bufferSize = sizeof(float) * m_row * m_column;
+        auto bufferSize = BufferSize();
 
         auto readbackBufferDescriptor = WGPUBufferDescriptor {
             .usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead,
@@ -117,7 +156,7 @@ public:
         mapPromise.await_resume();
 
         const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
-        auto res = pMappedData[row * m_column + column];
+        auto res = pMappedData[column * m_paddingRow + row];
         wgpuBufferUnmap(pReadbackBuffer.get());
         return res;
     }
@@ -127,7 +166,7 @@ private:
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
 
-        auto bufferSize = sizeof(float) * m_row * m_column;
+        auto bufferSize = BufferSize();
 
         auto readbackBufferDescriptor = WGPUBufferDescriptor {
             .usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead,
@@ -150,7 +189,13 @@ private:
         co_await mapPromise;
 
         const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
-        std::vector<float> out { pMappedData, pMappedData + m_row * m_column };
+        std::vector<float> wwe { pMappedData, pMappedData + bufferSize };
+        std::vector<float> out(m_row * m_column);
+        for (auto y = 0u; y < m_row; ++y) {
+            for (auto x = 0u; x < m_column; ++x) {
+                out.data()[y * m_column + x] = pMappedData[x * m_paddingRow + y];
+            }
+        }
         wgpuBufferUnmap(pReadbackBuffer.get());
         co_return out;
     }
@@ -173,6 +218,8 @@ fn main() {{
             GetWgslType(), other.GetWgslType(), output.GetWgslType());
         co_await adapter.Run(code.c_str(), { k.begin(), k.end() }, 1);
         co_return output;
+        */
+        return {};
     }
 
     std::string GetWgslType() const
@@ -186,11 +233,10 @@ fn main() {{
         } else {
             return std::format("mat{}x{}f", m_column, m_row);
         }
-        */
-        return {};
     }
 
     size_t m_row {};
+    size_t m_paddingRow {};
     size_t m_column {};
     ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };
