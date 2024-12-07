@@ -133,9 +133,8 @@ MATRIX_TEST(ReadByRowAndColumn)
 
 MATRIX_TEST(MatrixAdd)
 {
-    // TODO: row = 1 or column = 1
-    for (auto row = 2u; row <= 4; ++row) {
-        for (auto column = 2u; column <= 4; ++column) {
+    for (auto row = 1u; row <= 4; ++row) {
+        for (auto column = 1u; column <= 4; ++column) {
             Matrix x { row, column };
             Matrix y { row, column };
 

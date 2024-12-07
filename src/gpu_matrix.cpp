@@ -226,10 +226,8 @@ fn main() {{
     {
         if (m_row == 1 && m_column == 1) {
             return "f32";
-        } else if (m_row == 1) {
-            return std::format("array<f32, {}>", m_column);
-        } else if (m_column == 1) {
-            return std::format("vec{}f", m_row);
+        } else if (m_row == 1 || m_column == 1) {
+            return std::format("vec{}f", m_row * m_column);
         } else {
             return std::format("mat{}x{}f", m_column, m_row);
         }
