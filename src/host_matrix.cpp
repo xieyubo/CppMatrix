@@ -68,8 +68,17 @@ public:
 
     HostMatrix operator*(const HostMatrix& other) const
     {
-        // TODO
-        return {};
+        HostMatrix res { m_row, other.m_column };
+        for (auto y = 0; y < m_row; ++y) {
+            for (auto x = 0; x < other.m_column; ++x) {
+                auto sum = .0f;
+                for (auto i = 0; i < m_column; ++i) {
+                    sum += m_data[y * m_column + i] * other.m_data[i * other.m_column + x];
+                }
+                res.m_data[y * other.m_column + x] = sum;
+            }
+        }
+        return res;
     }
 
     float operator[](size_t row, size_t column) const

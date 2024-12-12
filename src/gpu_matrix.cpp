@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <coroutine>
 #include <format>
 #include <span>
@@ -83,14 +84,75 @@ public:
             throw std::runtime_error { "Can't dot two matrixs" };
         }
 
-        // The max dimension supported by wgsl is 4x4, so if the matrix dimension is bigger than it,
-        // we need split it.
-        if (m_row <= 4 && m_column <= 4 && other.m_column <= 4) {
-            // Perfect, no need split.
-            return DotWithNoSplication(other).await_resume();
-        } else {
-            throw std::runtime_error { "not supported" };
+        if (m_row > 4 || m_column > 4) {
+            throw std::runtime_error { "Shape is not supported." };
         }
+
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto output = GpuMatrix { m_row, other.m_column };
+        auto k = std::vector<GpuMatrix> { *this, other, output };
+        std::string code;
+        if (m_row != 1 && m_column == 1 && other.m_column != 1) {
+            if (other.m_column == 2) {
+                code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = {}(input1 * input2[0], input1 * input2[1]);
+}}
+)",
+                    GetWgslType(), other.GetWgslType(), output.GetWgslType(), output.GetWgslType());
+            } else if (other.m_column == 3) {
+                code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = {}(input1 * input2[0], input1 * input2[1], input1 * input2[2]);
+}}
+)",
+                    GetWgslType(), other.GetWgslType(), output.GetWgslType(), output.GetWgslType());
+            } else {
+                assert(other.m_column == 4);
+                code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = {}(input1 * input2[0], input1 * input2[1], input1 * input2[2], input1 * input2[3]);
+}}
+)",
+                    GetWgslType(), other.GetWgslType(), output.GetWgslType(), output.GetWgslType());
+            }
+        } else if ((m_row == 1 && m_column != 1 || m_row != 1 && m_column == 1) && (other.m_row == 1 && other.m_column != 1 || other.m_row != 1 && other.m_column == 1)) {
+            code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = dot(input1, input2);
+}}
+)",
+                GetWgslType(), other.GetWgslType(), output.GetWgslType());
+        } else {
+            code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {};
+@group(0) @binding(1) var<storage, read_write> input2: {};
+@group(0) @binding(2) var<storage, read_write> output: {};
+@compute @workgroup_size(1)
+fn main() {{
+    output = input1 * input2;
+}}
+)",
+                GetWgslType(), other.GetWgslType(), output.GetWgslType());
+        }
+        adapter.Run(code.c_str(), { k.begin(), k.end() }, 1).await_resume();
+        return output;
     }
 
     GpuMatrix operator+(const GpuMatrix& other) const
@@ -198,28 +260,6 @@ private:
         }
         wgpuBufferUnmap(pReadbackBuffer.get());
         co_return out;
-    }
-
-    Promise<GpuMatrix> DotWithNoSplication(const GpuMatrix& other) const
-    {
-        /*
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
-        auto output = GpuMatrix { m_row, other.m_column };
-        auto k = std::vector<GpuMatrix> { *this, other, output };
-        auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: {};
-@group(0) @binding(1) var<storage, read_write> input2: {};
-@group(0) @binding(2) var<storage, read_write> output: {};
-@compute @workgroup_size(1)
-fn main() {{
-    output = input1 * input2;
-}}
-)",
-            GetWgslType(), other.GetWgslType(), output.GetWgslType());
-        co_await adapter.Run(code.c_str(), { k.begin(), k.end() }, 1);
-        co_return output;
-        */
-        return {};
     }
 
     std::string GetWgslType() const

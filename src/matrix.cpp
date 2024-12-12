@@ -70,11 +70,10 @@ public:
     Matrix operator*(const Matrix& other) const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
-            p->operator*(std::get<HostMatrix>(other.m_matrix));
+            return p->operator*(std::get<HostMatrix>(other.m_matrix));
         } else {
-            std::get<GpuMatrix>(m_matrix).operator*(std::get<GpuMatrix>(other.m_matrix));
+            return std::get<GpuMatrix>(m_matrix).operator*(std::get<GpuMatrix>(other.m_matrix));
         }
-        return *this;
     }
 
     size_t Row() const

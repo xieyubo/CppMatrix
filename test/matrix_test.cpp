@@ -167,3 +167,43 @@ MATRIX_TEST(MatrixAdd)
         }
     }
 }
+
+MATRIX_TEST(MatrixMul)
+{
+    auto createMatrix = [](auto N, auto M) {
+        Matrix x { N, M };
+        std::vector<float> initData(N * M);
+        for (auto n = 0; n < N; ++n) {
+            for (auto m = 0; m < M; ++m) {
+                initData[n * M + m] = (n + 1) + ((m + 1) * 0.1);
+            }
+        }
+        x.Write(std::span<float> { initData });
+        return x;
+    };
+
+    // NxM * MxP
+    for (auto n = 1u; n <= 4; ++n) {
+        for (auto m = 1u; m <= 4; ++m) {
+            auto x = createMatrix(n, m);
+
+            for (auto p = 1u; p <= 4; ++p) {
+                auto y = createMatrix(m, p);
+
+                auto z = x * y;
+                ASSERT_EQ(z.Row(), n);
+                ASSERT_EQ(z.Column(), p);
+
+                for (auto r = 0; r < n; ++r) {
+                    for (auto c = 0; c < p; ++c) {
+                        auto sum = 0.0f;
+                        for (auto i = 0; i < m; ++i) {
+                            sum += ((r + 1) + (i + 1) * 0.1) * ((i + 1) + (c + 1) * 0.1);
+                        }
+                        ASSERT_FLOAT_EQ((z[r, c]), sum);
+                    }
+                }
+            }
+        }
+    }
+}
