@@ -16,12 +16,23 @@ namespace cpp_matrix {
 
 export class GpuMatrix {
 public:
+    static bool IsSupported(size_t row, size_t column)
+    {
+        const auto& limits = GpuInstance::GetInstance().GetAdapter().GetLimits().limits;
+        auto requiredBufferSize = row * column * sizeof(float);
+        return requiredBufferSize <= limits.maxStorageBufferBindingSize && requiredBufferSize < limits.maxBufferSize;
+    }
+
     GpuMatrix() = default;
 
     GpuMatrix(size_t row, size_t column)
         : m_row { row }
         , m_column { column }
     {
+        if (!IsSupported(row, column)) {
+            throw std::runtime_error { "dimension is not supported." };
+        }
+
         m_paddingRow = m_row == 3 && m_column != 1 ? 4 : m_row;
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         m_pBuffer = adapter.CreateBuffer(m_paddingRow, m_column);
@@ -274,17 +285,20 @@ private:
         wgpuCommandEncoderCopyBufferToBuffer(commandEncoder, m_pBuffer.get(), 0, pReadbackBuffer.get(), 0, bufferSize);
         auto commandBuffer = wgpuCommandEncoderFinish(commandEncoder, nullptr);
 
-        auto submitPromise = Promise<void>();
+        auto submitPromise = Promise<WGPUQueueWorkDoneStatus>();
         wgpuQueueSubmit(adapter.GetQueue(), 1, &commandBuffer);
-        wgpuQueueOnSubmittedWorkDone(adapter.GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { (*Promise<void>::GetState(callbackData))->SetValue(); }, submitPromise.GetState().release());
-        co_await submitPromise;
+        wgpuQueueOnSubmittedWorkDone(adapter.GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { (*Promise<WGPUQueueWorkDoneStatus>::GetState(callbackData))->SetValue(status); }, submitPromise.GetState().release());
+        if (auto status = co_await submitPromise; status != WGPUQueueWorkDoneStatus_Success) {
+            throw std::runtime_error { "wgpuQueueOnSubmittedWorkDone failed." };
+        }
 
-        auto mapPromise = Promise<void>();
-        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { (*Promise<void>::GetState(captureData))->SetValue(); }, mapPromise.GetState().release());
-        co_await mapPromise;
+        auto mapPromise = Promise<WGPUBufferMapAsyncStatus>();
+        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { (*Promise<WGPUBufferMapAsyncStatus>::GetState(captureData))->SetValue(status); }, mapPromise.GetState().release());
+        if (auto status = co_await mapPromise; status != WGPUBufferMapAsyncStatus_Success) {
+            throw std::runtime_error { "wgpuBufferMapAsync failed." };
+        }
 
         const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
-        std::vector<float> wwe { pMappedData, pMappedData + bufferSize };
         std::vector<float> out(m_row * m_column);
         for (auto y = 0u; y < m_row; ++y) {
             for (auto x = 0u; x < m_column; ++x) {

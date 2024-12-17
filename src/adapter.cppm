@@ -29,6 +29,10 @@ public:
         , m_pDevice { std::move(device) }
     {
         m_pQueue.reset(wgpuDeviceGetQueue(m_pDevice.get()));
+
+        if (wgpuAdapterGetLimits(m_pAdapter.get(), &m_limits) != WGPUStatus_Success) {
+            throw std::runtime_error { "wgpuAdapterGetLimits failed." };
+        }
     }
 
     ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
@@ -39,6 +43,11 @@ public:
         };
 
         return ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
+    }
+
+    const WGPUSupportedLimits& GetLimits() const
+    {
+        return m_limits;
     }
 
     WGPUDevice GetDevice() const
@@ -72,6 +81,7 @@ private:
     ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease> m_pAdapter {};
     ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease> m_pDevice {};
     ref_ptr<WGPUQueue, wgpuQueueAddRef, wgpuQueueRelease> m_pQueue {};
+    WGPUSupportedLimits m_limits {};
 };
 
 }

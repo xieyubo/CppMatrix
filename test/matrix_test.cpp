@@ -166,9 +166,8 @@ MATRIX_TEST(MatrixAdd)
     }
 
     test(100, 100);
-
-    // BUG!!
-    // test(1000, 1000); <-- failed. Memory issue?
+    test(1000, 1000);
+    test(5000, 5000);
 }
 
 MATRIX_TEST(MatrixMul)
