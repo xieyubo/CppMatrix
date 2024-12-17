@@ -2,6 +2,7 @@ module;
 
 #include <memory>
 #include <span>
+#include <string_view>
 #include <utility>
 #include <webgpu/webgpu.h>
 
@@ -60,17 +61,17 @@ public:
         return m_pQueue.get();
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters)
+    Promise<void> Run(std::string_view shaderScript, std::span<Parameter> parameters)
     {
         return Run(shaderScript, parameters, /*batchSize=*/1);
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters, size_t batchSize)
+    Promise<void> Run(std::string_view shaderScript, std::span<Parameter> parameters, size_t batchSize)
     {
         return Run(shaderScript, parameters, /*N=*/batchSize, batchSize);
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize);
+    Promise<void> Run(std::string_view shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize);
 
     operator bool() const
     {

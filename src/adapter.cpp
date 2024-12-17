@@ -3,6 +3,7 @@ module;
 #include <coroutine>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <vector>
 #include <webgpu/webgpu.h>
 
@@ -12,7 +13,7 @@ import :promise;
 
 namespace cpp_matrix {
 
-Promise<void> Adapter::Run(const char* shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize)
+Promise<void> Adapter::Run(std::string_view shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize)
 {
     // Create layout entries for parameters.
     auto layoutEntries = std::vector<WGPUBindGroupLayoutEntry>(parameters.size());
@@ -62,16 +63,13 @@ Promise<void> Adapter::Run(const char* shaderScript, std::span<Parameter> parame
     auto pipelineLayout = wgpuDeviceCreatePipelineLayout(m_pDevice.get(), &pipelineLayoutDesc);
 
     // Create wgsl
-    auto wgslDesc = WGPUShaderModuleWGSLDescriptor {
-        .chain = WGPUChainedStruct {
-            .sType = WGPUSType_ShaderModuleWGSLDescriptor,
-        },
-        .code = shaderScript,
-    };
+    auto wgslDesc = WGPU_SHADER_SOURCE_WGSL_INIT;
+    wgslDesc.code.data = shaderScript.data();
+    wgslDesc.code.length = shaderScript.length();
 
     auto shaderModuleDesc = WGPUShaderModuleDescriptor {
         .nextInChain = &wgslDesc.chain,
-        .label = "shader",
+        .label = { "shader" },
     };
 
     auto computePipelineDesc = WGPUComputePipelineDescriptor {
