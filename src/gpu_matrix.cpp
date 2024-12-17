@@ -90,7 +90,11 @@ public:
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, other.m_column };
-        auto k = std::vector<GpuMatrix> { *this, other, output };
+        auto k = std::vector<Parameter> {
+            { GetBuffer(), BufferSize() },
+            { other.GetBuffer(), other.BufferSize() },
+            { output.GetBuffer(), output.BufferSize() },
+        };
         std::string code;
         if (m_row != 1 && m_column == 1 && other.m_column != 1) {
             if (other.m_column == 2) {
@@ -161,24 +165,53 @@ fn main() {{
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        if (m_row > 4 || m_column > 4) {
-            throw std::runtime_error { "Shape is not supported." };
-        }
-
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, m_column };
-        auto k = std::vector<GpuMatrix> { *this, other, output };
-        auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: {};
-@group(0) @binding(1) var<storage, read_write> input2: {};
-@group(0) @binding(2) var<storage, read_write> output: {};
+
+        // Caculate vec4f, batch size = 256.
+        size_t total = m_paddingRow * m_column;
+        size_t N = total / 4;
+        if (N) {
+            auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4f>;
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1[i] + input2[i];
+    }}
+}}
+)",
+                N);
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { output.GetBuffer(), output.BufferSize() },
+            };
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+            total -= N * 4;
+        }
+
+        if (total) {
+            auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: {0};
+@group(0) @binding(1) var<storage, read_write> input2: {0};
+@group(0) @binding(2) var<storage, read_write> output: {0};
 @compute @workgroup_size(1)
 fn main() {{
     output = input1 + input2;
 }}
 )",
-            GetWgslType(), other.GetWgslType(), output.GetWgslType());
-        adapter.Run(code.c_str(), { k.begin(), k.end() }, 1).await_resume();
+                total == 1 ? "f32" : std::format("vec{}f", total));
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() - sizeof(float) * 4 * N, sizeof(float) * 4 * N },
+                { other.GetBuffer(), BufferSize() - sizeof(float) * 4 * N, sizeof(float) * 4 * N },
+                { output.GetBuffer(), BufferSize() - sizeof(float) * 4 * N, sizeof(float) * 4 * N },
+            };
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() });
+        }
         return output;
     }
 

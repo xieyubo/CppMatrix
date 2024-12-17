@@ -12,17 +12,17 @@ import :promise;
 
 namespace cpp_matrix {
 
-Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffers, size_t batchSize)
+Promise<void> Adapter::Run(const char* shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize)
 {
-    // Create layout entries for buffers.
-    auto layoutEntries = std::vector<WGPUBindGroupLayoutEntry>(buffers.size());
-    for (auto i = 0u; i < buffers.size(); ++i) {
+    // Create layout entries for parameters.
+    auto layoutEntries = std::vector<WGPUBindGroupLayoutEntry>(parameters.size());
+    for (auto i = 0u; i < parameters.size(); ++i) {
         layoutEntries[i] = WGPUBindGroupLayoutEntry {
             .binding = i,
             .visibility = WGPUShaderStage_Compute,
             .buffer = WGPUBufferBindingLayout {
                 .type = WGPUBufferBindingType_Storage,
-                .minBindingSize = buffers[i].BufferSize(),
+                .minBindingSize = parameters[i].size,
             },
         };
     }
@@ -35,12 +35,13 @@ Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffer
     auto layout = wgpuDeviceCreateBindGroupLayout(m_pDevice.get(), &layoutDesc);
 
     // Create bind group entries.
-    auto bindGroupEntries = std::vector<WGPUBindGroupEntry>(buffers.size());
-    for (auto i = 0u; i < buffers.size(); ++i) {
+    auto bindGroupEntries = std::vector<WGPUBindGroupEntry>(parameters.size());
+    for (auto i = 0u; i < parameters.size(); ++i) {
         bindGroupEntries[i] = WGPUBindGroupEntry {
             .binding = i,
-            .buffer = buffers[i].GetBuffer(),
-            .size = buffers[i].BufferSize(),
+            .buffer = parameters[i].buffer,
+            .offset = parameters[i].offset,
+            .size = parameters[i].size,
         };
     }
 
@@ -89,7 +90,7 @@ Promise<void> Adapter::Run(const char* shaderScript, std::span<GpuMatrix> buffer
     wgpuComputePassEncoderSetPipeline(computePassEncoder, computePipeline);
     wgpuComputePassEncoderSetBindGroup(computePassEncoder, 0, bindGroup, 0, nullptr);
     // wgpuComputePassEncoderDispatchWorkgroups(computePassEncoder, workgroupSize, 1, 1);
-    wgpuComputePassEncoderDispatchWorkgroups(computePassEncoder, batchSize, 1, 1);
+    wgpuComputePassEncoderDispatchWorkgroups(computePassEncoder, (N + (batchSize - 1)) / batchSize, 1, 1);
     wgpuComputePassEncoderEnd(computePassEncoder);
 
     auto commandBuffer = wgpuCommandEncoderFinish(commandEncoder, nullptr);

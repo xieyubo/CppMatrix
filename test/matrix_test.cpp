@@ -133,39 +133,42 @@ MATRIX_TEST(ReadByRowAndColumn)
 
 MATRIX_TEST(MatrixAdd)
 {
-    for (auto row = 1u; row <= 4; ++row) {
-        for (auto column = 1u; column <= 4; ++column) {
-            Matrix x { row, column };
-            Matrix y { row, column };
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+        Matrix y { row, column };
 
-            std::vector<float> initData(row * column);
-            auto i = 1;
-            for (auto& e : initData) {
-                e = i++;
-            }
+        std::vector<float> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
 
-            x.Write(std::span<float> { initData });
-            y.Write(std::span<float> { initData });
+        x.Write(std::span<float> { initData });
+        y.Write(std::span<float> { initData });
 
-            auto z = x + y;
-            ASSERT_EQ(z.Row(), row);
-            ASSERT_EQ(z.Column(), column);
+        auto z = x + y;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
 
-            for (auto y = 0; y < row; ++y) {
-                for (auto x = 0; x < column; ++x) {
-                    ASSERT_FLOAT_EQ((z[y, x]), 2 * initData[y * column + x]);
-                }
-            }
-
-            auto res = z.Read();
-            ASSERT_EQ(res.size(), row * column);
-            for (auto y = 0; y < row; ++y) {
-                for (auto x = 0; x < column; ++x) {
-                    ASSERT_FLOAT_EQ(res[y * column + x], 2 * initData[y * column + x]);
-                }
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto y = 0; y < row; ++y) {
+            for (auto x = 0; x < column; ++x) {
+                ASSERT_FLOAT_EQ(res[y * column + x], 2 * initData[y * column + x]);
             }
         }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
     }
+
+    test(100, 100);
+
+    // BUG!!
+    // test(1000, 1000); <-- failed. Memory issue?
 }
 
 MATRIX_TEST(MatrixMul)

@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <coroutine>
 #include <functional>
 #include <memory>
@@ -52,7 +53,14 @@ private:
 
         // Request device.
         auto devicePromise = Promise<DevicePtr>();
-        wgpuAdapterRequestDevice(pAdapter.get(), nullptr, [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* pUserData) { (*Promise<DevicePtr>::GetState(pUserData))->SetValue(DevicePtr { device }); }, devicePromise.GetState().release());
+        WGPURequiredLimits requiredLimis = WGPU_REQUIRED_LIMITS_INIT;
+        // Currently we only support offset aligment is 16.
+        requiredLimis.limits.minStorageBufferOffsetAlignment = 16;
+        WGPUDeviceDescriptor descriptor = WGPU_DEVICE_DESCRIPTOR_INIT;
+        descriptor.requiredLimits = &requiredLimis;
+        wgpuAdapterRequestDevice(pAdapter.get(), &descriptor, [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* pUserData) { 
+            assert(status == WGPURequestDeviceStatus_Success);
+            (*Promise<DevicePtr>::GetState(pUserData))->SetValue(DevicePtr { device }); }, devicePromise.GetState().release());
         auto pDevice = co_await devicePromise;
 
         // All done.

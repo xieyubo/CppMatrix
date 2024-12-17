@@ -42,7 +42,10 @@ fn main(
 
         input.Write(std::span { inputArr });
 
-        auto k = std::vector<GpuMatrix> { input, output };
+        auto k = std::vector<Parameter> {
+            { input.GetBuffer(), input.BufferSize() },
+            { output.GetBuffer(), output.BufferSize() },
+        };
         co_await adapter.Run(kShaderGELU, { k.begin(), k.end() }, cdiv(N, 256));
 
         res = output.Read();

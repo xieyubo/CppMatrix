@@ -14,6 +14,12 @@ namespace cpp_matrix {
 export class Matrix;
 export class GpuMatrix;
 
+export struct Parameter {
+    WGPUBuffer buffer {};
+    size_t size {};
+    size_t offset {};
+};
+
 export class Adapter {
 public:
     Adapter() = default;
@@ -45,7 +51,17 @@ public:
         return m_pQueue.get();
     }
 
-    Promise<void> Run(const char* shaderScript, std::span<GpuMatrix> buffers, size_t batchSize);
+    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters)
+    {
+        return Run(shaderScript, parameters, /*batchSize=*/1);
+    }
+
+    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters, size_t batchSize)
+    {
+        return Run(shaderScript, parameters, /*N=*/batchSize, batchSize);
+    }
+
+    Promise<void> Run(const char* shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize);
 
     operator bool() const
     {
