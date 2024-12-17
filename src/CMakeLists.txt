@@ -13,5 +13,5 @@ target_sources(cpp_matrix PUBLIC FILE_SET CXX_MODULES FILES
     promise.cpp
 )
 target_link_libraries(cpp_matrix INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/webgpu/libdawn.so
+    ${WEBGPU_PATH}/libwebgpu_dawn.so
 )

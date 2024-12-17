@@ -3,10 +3,21 @@ cmake_minimum_required(VERSION 3.30)
 project(webgpu CXX)
 
 # Download dependencies
-if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/webgpu/libdawn.so)
+set(WEBGPU_PATH ${CMAKE_CURRENT_BINARY_DIR}/thirdparty/webgpu)
+
+if (NOT EXISTS ${WEBGPU_PATH})
+    file(MAKE_DIRECTORY ${WEBGPU_PATH})
+endif()
+
+if ((NOT EXISTS ${WEBGPU_PATH}/libwebgpu_dawn.so) OR (NOT EXISTS ${WEBGPU_PATH}/webgpu.h))
+    MESSAGE("Download libwebgpu_dawn.so and webgpu.h")
     file(DOWNLOAD
-        https://github.com/austinvhuang/dawn-artifacts/releases/download/prerelease/libdawn.so 
-        ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/webgpu/libdawn.so
+        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.08.31/libwebgpu_dawn.so
+        ${WEBGPU_PATH}/libwebgpu_dawn.so
+        SHOW_PROGRESS)
+    file(DOWNLOAD
+        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.08.31/webgpu.h
+        ${WEBGPU_PATH}/webgpu.h
         SHOW_PROGRESS)
 endif()
 
@@ -16,7 +27,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(-g)
 
 include_directories(
-    thirdparty
+    ${WEBGPU_PATH}/..
 )
 
 find_package(GTest REQUIRED)
