@@ -34,6 +34,6 @@ find_package(GTest REQUIRED)
 
 enable_testing()
 
-#add_subdirectory(example)
+add_subdirectory(example)
 add_subdirectory(src)
 add_subdirectory(test)

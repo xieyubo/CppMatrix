@@ -329,3 +329,35 @@ MATRIX_TEST(MatrixSigmoid)
     ASSERT_FLOAT_EQ(res[1], 0.60348326f);
     ASSERT_FLOAT_EQ(res[2], 0.65021855f);
 }
+
+MATRIX_TEST(MatrixTranspose)
+{
+    auto test = [](size_t M, size_t N) {
+        Matrix x { M, N };
+        std::vector<float> initData(M * N);
+        for (auto m = 0; m < M; ++m) {
+            for (auto n = 0; n < N; ++n) {
+                initData[m * N + n] = m * 100 + n;
+        }
+        }
+        x.Write(std::span<float> { initData });
+
+        auto z = x.Transpose();
+        ASSERT_EQ(z.Row(), N);
+        ASSERT_EQ(z.Column(), M);
+
+        auto res = z.Read();
+        for (auto n = 0; n < N; ++n) {
+            for (auto m = 0; m < M; ++m) {
+                ASSERT_FLOAT_EQ(res[n * M + m], m * 100 + n);
+            }
+        }
+    };
+
+    for (auto m = 1u; m <= 20; ++m) {
+        for (auto n = 1u; n <= 20; ++n) {
+            test(m, n);
+        }
+    }
+
+}

@@ -46,6 +46,12 @@ public:
     {
     }
 
+    Matrix(size_t row, size_t column, std::span<float> initData, MatrixType type = MatrixType::Auto)
+        : m_matrix { CreateMatrix(type, row, column) }
+    {
+        Write(initData);
+    }
+
     template <size_t N>
     void Write(std::span<float, N> data)
     {
@@ -76,6 +82,15 @@ public:
             return p->operator+(std::get<HostMatrix>(other.m_matrix));
         } else {
             return std::get<GpuMatrix>(m_matrix).operator+(std::get<GpuMatrix>(other.m_matrix));
+        }
+    }
+
+    Matrix operator-(const Matrix& other) const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->operator-(std::get<HostMatrix>(other.m_matrix));
+        } else {
+            return std::get<GpuMatrix>(m_matrix).operator-(std::get<GpuMatrix>(other.m_matrix));
         }
     }
 
@@ -139,6 +154,15 @@ public:
     Matrix& operator=(std::span<float, Extent> data)
     {
         return operator=(std::vector<float> { data.begin(), data.end() });
+    }
+
+    Matrix Transpose() const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Transpose();
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Transpose();
+        }
     }
 
     Matrix Sigmoid() const

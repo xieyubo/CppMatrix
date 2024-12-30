@@ -76,6 +76,22 @@ public:
         return res;
     }
 
+    HostMatrix operator-(const HostMatrix& other) const
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        HostMatrix res { m_row, m_column };
+        auto* pR = res.m_data.data();
+        auto* p1 = m_data.data();
+        auto* p2 = other.m_data.data();
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            *pR++ = *p1++ - *p2++;
+        }
+        return res;
+    }
+
     HostMatrix operator*(const HostMatrix& other) const
     {
         HostMatrix res { m_row, other.m_column };
@@ -96,6 +112,17 @@ public:
         HostMatrix res { m_row, m_column };
         for (auto i = 0u; i < m_row * m_column; ++i) {
             res.m_data[i] = 1.f / (1.f + std::exp(-m_data[i]));
+        }
+        return res;
+    }
+
+    HostMatrix Transpose() const
+    {
+        HostMatrix res { m_column, m_row };
+        for (int c = 0u; c < m_column; ++c) {
+            for (int r = 0u; r < m_row; ++r) {
+                res.m_data[c * m_row + r] = m_data[r * m_column + c];
+            }
         }
         return res;
     }
