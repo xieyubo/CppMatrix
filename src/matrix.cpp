@@ -141,6 +141,15 @@ public:
         return operator=(std::vector<float> { data.begin(), data.end() });
     }
 
+    Matrix Sigmoid() const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->Sigmoid();
+        } else {
+            return std::get<GpuMatrix>(m_matrix).Sigmoid();
+        }
+    }
+
     float operator[](size_t row, size_t column) const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {

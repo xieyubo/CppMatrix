@@ -1,3 +1,4 @@
+#include <cmath>
 #include <coroutine>
 #include <gtest/gtest.h>
 
@@ -303,4 +304,28 @@ MATRIX_TEST(MatrixMul)
 
     test(20, 20, 20);
     test(50, 50, 50);
+}
+
+MATRIX_TEST(MatrixSigmoid)
+{
+    Matrix x { 3, 1 };
+
+    // clang-format off
+    std::vector<float> initData {
+        1.16f,
+        0.42f,
+        0.62f,
+    };
+    // clang-format on
+
+    x.Write(std::span<float> { initData });
+
+    auto z = x.Sigmoid();
+    ASSERT_EQ(z.Row(), 3);
+    ASSERT_EQ(z.Column(), 1);
+
+    auto res = z.Read();
+    ASSERT_FLOAT_EQ(res[0], 0.76133269f);
+    ASSERT_FLOAT_EQ(res[1], 0.60348326f);
+    ASSERT_FLOAT_EQ(res[2], 0.65021855f);
 }

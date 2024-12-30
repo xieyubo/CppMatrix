@@ -1,5 +1,6 @@
 module;
 
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -86,6 +87,15 @@ public:
                 }
                 res.m_data[y * other.m_column + x] = sum;
             }
+        }
+        return res;
+    }
+
+    HostMatrix Sigmoid() const
+    {
+        HostMatrix res { m_row, m_column };
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            res.m_data[i] = 1.f / (1.f + std::exp(-m_data[i]));
         }
         return res;
     }
