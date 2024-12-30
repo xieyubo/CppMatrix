@@ -170,6 +170,80 @@ MATRIX_TEST(MatrixAdd)
     test(5000, 5000);
 }
 
+MATRIX_TEST(MatrixAddScalar)
+{
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+
+        std::vector<float> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
+
+        x.Write(std::span<float> { initData });
+
+        auto z = x + 0.5f;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto y = 0; y < row; ++y) {
+            for (auto x = 0; x < column; ++x) {
+                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] + 0.5);
+            }
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
+    }
+
+    test(100, 100);
+    test(1000, 1000);
+    test(5000, 5000);
+}
+
+MATRIX_TEST(MatrixSubScalar)
+{
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+
+        std::vector<float> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
+
+        x.Write(std::span<float> { initData });
+
+        auto z = x - 0.5f;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto y = 0; y < row; ++y) {
+            for (auto x = 0; x < column; ++x) {
+                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] - 0.5);
+            }
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
+    }
+
+    test(100, 100);
+    test(1000, 1000);
+    test(5000, 5000);
+}
+
 MATRIX_TEST(MatrixMul)
 {
     auto createMatrix = [](auto N, auto M) {

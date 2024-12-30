@@ -193,6 +193,38 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
+    GpuMatrix operator+(float v) const
+    {
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto vbuffer = adapter.CreateBuffer(1);
+        wgpuQueueWriteBuffer(adapter.GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+
+        auto output = GpuMatrix { m_row, m_column };
+
+        // Caculate mat4x4
+        size_t N = (m_paddingRow >> 2) * m_paddingColumn;
+        auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4f>;
+@group(0) @binding(1) var<storage, read_write> input2: f32;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1[i] + input2;
+    }}
+}}
+)",
+            N);
+        auto parameters = std::vector<Parameter> {
+            { GetBuffer(), BufferSize() },
+            { vbuffer.get(), sizeof(float) },
+            { output.GetBuffer(), output.BufferSize() },
+        };
+        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        return output;
+    }
+
     std::vector<float> Read() const
     {
         std::vector<float> out(m_row * m_column);

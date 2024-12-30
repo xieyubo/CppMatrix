@@ -66,6 +66,15 @@ public:
         return res;
     }
 
+    HostMatrix operator+(float v) const
+    {
+        HostMatrix res { m_row, m_column };
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            res.m_data[i] = m_data[i] + v;
+        }
+        return res;
+    }
+
     HostMatrix operator*(const HostMatrix& other) const
     {
         HostMatrix res { m_row, other.m_column };

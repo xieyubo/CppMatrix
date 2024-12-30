@@ -67,6 +67,20 @@ public:
         }
     }
 
+    Matrix operator+(float v) const
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->operator+(v);
+        } else {
+            return std::get<GpuMatrix>(m_matrix).operator+(v);
+        }
+    }
+
+    Matrix operator-(float v) const
+    {
+        return *this + (-v);
+    }
+
     Matrix operator*(const Matrix& other) const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
