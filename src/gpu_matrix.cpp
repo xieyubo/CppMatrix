@@ -38,6 +38,10 @@ public:
         m_paddingColumn = (m_column + 3) & ~3;
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         m_pBuffer = adapter.CreateBuffer(m_paddingRow, m_paddingColumn);
+
+        // Zero out.
+        std::vector<float> tmp(m_paddingRow * m_paddingColumn);
+        wgpuQueueWriteBuffer(adapter.GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(float) * tmp.size());
     }
 
     size_t Row() const
@@ -96,27 +100,60 @@ public:
             throw std::runtime_error { "Can't dot two matrixs" };
         }
 
-        if (m_row > 4 || m_column > 4) {
-            throw std::runtime_error { "Shape is not supported." };
-        }
-
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, other.m_column };
-        auto k = std::vector<Parameter> {
-            { GetBuffer(), BufferSize() },
-            { other.GetBuffer(), other.BufferSize() },
-            { output.GetBuffer(), output.BufferSize() },
-        };
-        auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: mat4x4f;
-@group(0) @binding(1) var<storage, read_write> input2: mat4x4f;
-@group(0) @binding(2) var<storage, read_write> output: mat4x4f;
+
+        // Caculate mat4x4
+        size_t N = (m_paddingColumn >> 2) * (other.m_paddingColumn >> 2) * (m_paddingRow >> 2);
+        auto intermediaBuffer = adapter.CreateBuffer(N * 4 * 4);
+        if (N) {
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
+            };
+
+            auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
+@group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {0}) {{
+        var a_row_index = i / ({1} * {2});
+        var a_col_index = i % {1};
+        var a_index = a_row_index * {1} + a_col_index;
+
+        var b_row_index = i % {1};
+        var b_col_index = i / {1} % {2};
+        var b_index = b_row_index * {2} + b_col_index;
+
+        output[i] = transpose(transpose(input1[a_index]) * transpose(input2[b_index]));
+    }}
+}}
+)",
+                N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+
+            code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input: array<mat4x4f>;
+@group(0) @binding(1) var<storage, read_write> output: array<mat4x4f>;
 @compute @workgroup_size(1)
 fn main() {{
-    output = input2 * input1;
+    for (var i = 0; i < {0}; i = i + 1) {{
+        output[i / {1}] = output[i / {1}] + input[i];
+    }}
 }}
-)");
-        adapter.Run(code.c_str(), { k.begin(), k.end() }, 1).await_resume();
+)",
+                N, m_paddingColumn >> 2);
+            parameters = std::vector<Parameter> {
+                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
+                { output.GetBuffer(), output.BufferSize() },
+            };
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }).await_resume();
+        }
+
         return output;
     }
 
@@ -150,7 +187,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
         }
 
         return output;

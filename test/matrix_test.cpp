@@ -177,7 +177,7 @@ MATRIX_TEST(MatrixMul)
         std::vector<float> initData(N * M);
         for (auto n = 0; n < N; ++n) {
             for (auto m = 0; m < M; ++m) {
-                initData[n * M + m] = (n + 1) + ((m + 1) * 0.1);
+                initData[n * M + m] = (n + 1) + ((m + 1) * 0.1f);
             }
         }
         x.Write(std::span<float> { initData });
@@ -185,27 +185,36 @@ MATRIX_TEST(MatrixMul)
     };
 
     // NxM * MxP
-    for (auto n = 1u; n <= 4; ++n) {
-        for (auto m = 1u; m <= 4; ++m) {
-            auto x = createMatrix(n, m);
+    auto test = [&createMatrix](size_t n, size_t m, size_t p) {
+        auto x = createMatrix(n, m);
+        auto y = createMatrix(m, p);
 
-            for (auto p = 1u; p <= 4; ++p) {
-                auto y = createMatrix(m, p);
+        auto z = x * y;
+        ASSERT_EQ(z.Row(), n);
+        ASSERT_EQ(z.Column(), p);
 
-                auto z = x * y;
-                ASSERT_EQ(z.Row(), n);
-                ASSERT_EQ(z.Column(), p);
-
-                for (auto r = 0; r < n; ++r) {
-                    for (auto c = 0; c < p; ++c) {
-                        auto sum = 0.0f;
-                        for (auto i = 0; i < m; ++i) {
-                            sum += ((r + 1) + (i + 1) * 0.1) * ((i + 1) + (c + 1) * 0.1);
-                        }
-                        ASSERT_FLOAT_EQ((z[r, c]), sum);
-                    }
+        auto res = z.Read();
+        for (auto r = 0; r < n; ++r) {
+            for (auto c = 0; c < p; ++c) {
+                float sum = 0.f;
+                for (auto i = 0; i < m; ++i) {
+                    auto a = (r + 1) + ((i + 1) * 0.1f);
+                    auto b = (i + 1) + ((c + 1) * 0.1f);
+                    sum += a * b;
                 }
+                ASSERT_FLOAT_EQ((res[r * p + c]), sum);
+            }
+        }
+    };
+
+    for (auto n = 1u; n <= 16; ++n) {
+        for (auto m = 1u; m <= 16; ++m) {
+            for (auto p = 1u; p <= 16; ++p) {
+                test(n, m, p);
             }
         }
     }
+
+    test(20, 20, 20);
+    test(50, 50, 50);
 }

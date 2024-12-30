@@ -36,14 +36,19 @@ public:
         }
     }
 
-    ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
+    ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t elementSize)
     {
         auto bufferDesc = WGPUBufferDescriptor {
             .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-            .size = sizeof(float) * row * column,
+            .size = sizeof(float) * elementSize,
         };
 
         return ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
+    }
+
+    ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
+    {
+        return CreateBuffer(row * column);
     }
 
     const WGPUSupportedLimits& GetLimits() const
