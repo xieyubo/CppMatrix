@@ -25,6 +25,18 @@ MATRIX_TEST(DefaultConstructor)
     ASSERT_FALSE(!!x);
 }
 
+MATRIX_TEST(CreateRandomMatrix)
+{
+    auto m = Matrix::Random(3, 4);
+    ASSERT_EQ(m.Row(), 3);
+    ASSERT_EQ(m.Column(), 4);
+
+    auto data = m.Read();
+    for (const auto& v : data) {
+        ASSERT_TRUE(v >= 0 && v <= 1);
+    }
+}
+
 MATRIX_TEST(SetAbsoluteValue)
 {
     Matrix x {};

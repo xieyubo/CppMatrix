@@ -24,6 +24,18 @@ public:
         s_defaultMatrixType = type;
     }
 
+    /// @brief Create a matrix with random value (value will be between 0 and 1).
+    static Matrix Random(size_t row, size_t column)
+    {
+        auto matrix = Matrix { row, column };
+        std::vector<float> initData(row * column);
+        for (auto& v : initData) {
+            v = std::min(std::rand() / (float)RAND_MAX, 1.f);
+        }
+        matrix.Write(std::span<float> { initData });
+        return matrix;
+    }
+
     Matrix()
         : Matrix { 0, 0 }
     {
