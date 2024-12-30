@@ -1,8 +1,6 @@
-add_library(cpp_matrix
-    adapter.cpp
-)
+add_library(cpp_matrix)
 target_sources(cpp_matrix PUBLIC FILE_SET CXX_MODULES FILES
-    adapter.cppm
+    adapter.cpp
     gpu_instance.cpp
     gpu_matrix.cpp
     host_matrix.cpp
