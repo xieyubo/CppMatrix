@@ -12,6 +12,7 @@ import cpp_matrix;
 using namespace cpp_matrix;
 
 struct Options {
+    int epochs { 1 };
     std::string training_file;
     std::string test_file;
     bool useHostMatrix {};
@@ -26,6 +27,8 @@ static Options parse_options(int argc, char* argv[])
             options.useHostMatrix = true;
         } else if (!strcmp(argv[i], "--use-gpu")) {
             options.useGpuMatrix = true;
+        } else if (!strcmp(argv[i], "--epochs")) {
+            options.epochs = atoi(argv[++i]);
         } else if (options.training_file.empty()) {
             options.training_file = argv[i];
         } else if (options.test_file.empty()) {
@@ -63,12 +66,11 @@ static std::vector<std::pair<int, std::vector<float>>> read_data_from_file(std::
 
 static void print_help(const char* appname)
 {
-    printf("%s [--use-host|--use-gpu] training_file test_file\n", appname);
+    printf("%s [--use-host|--use-gpu] [--epochs x] training_file test_file\n", appname);
 }
 
 int main(int argc, char* argv[])
 {
-    // std::srand(std::time(0));
     if (argc <= 1) {
         print_help(argv[0]);
         return 1;
@@ -92,10 +94,13 @@ int main(int argc, char* argv[])
     auto network = NeuralNetwork { kInputNodes, kHiddenNodes, kOutputNodes, kLearningRate };
 
     auto training_data = read_data_from_file(options.training_file);
-    for (const auto& [v, inputs] : training_data) {
-        std::vector<float> targets(10, 0.01f);
-        targets[v] = 0.99f;
-        network.Train(inputs, targets);
+
+    for (int i = 0; i < options.epochs; ++i) {
+        for (const auto& [v, inputs] : training_data) {
+            std::vector<float> targets(10, 0.01f);
+            targets[v] = 0.99f;
+            network.Train(inputs, targets);
+        }
     }
 
     // test the network
@@ -120,6 +125,6 @@ int main(int argc, char* argv[])
             ++correct;
         }
     }
-    printf("Correct rate: %.2f%%\n", (float)correct / total);
+    printf("performance = %g\n", (float)correct / total);
     return 0;
 }
