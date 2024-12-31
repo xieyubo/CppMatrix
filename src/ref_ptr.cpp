@@ -73,6 +73,11 @@ public:
         return m_handle;
     }
 
+    const TGPUNativeHandle* get_addr() const
+    {
+        return &m_handle;
+    }
+
 protected:
     TGPUNativeHandle m_handle {};
 };
