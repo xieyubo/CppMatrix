@@ -48,7 +48,7 @@ private:
 
         // Request adapter.
         auto adapterPromise = Promise<AdapterPtr>();
-        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* pUserData) { (*Promise<AdapterPtr>::GetState(pUserData))->SetValue(AdapterPtr { adapter }); }, adapterPromise.GetState().release());
+        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, WGPUStringView message, void* pUserData) { (*Promise<AdapterPtr>::GetState(pUserData))->SetValue(AdapterPtr { adapter }); }, adapterPromise.GetState().release());
         auto pAdapter = co_await adapterPromise;
 
         // Request device.
@@ -58,7 +58,7 @@ private:
         requiredLimis.limits.minStorageBufferOffsetAlignment = 16;
         WGPUDeviceDescriptor descriptor = WGPU_DEVICE_DESCRIPTOR_INIT;
         descriptor.requiredLimits = &requiredLimis;
-        wgpuAdapterRequestDevice(pAdapter.get(), &descriptor, [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* pUserData) { 
+        wgpuAdapterRequestDevice(pAdapter.get(), &descriptor, [](WGPURequestDeviceStatus status, WGPUDevice device, WGPUStringView message, void* pUserData) { 
             assert(status == WGPURequestDeviceStatus_Success);
             (*Promise<DevicePtr>::GetState(pUserData))->SetValue(DevicePtr { device }); }, devicePromise.GetState().release());
         auto pDevice = co_await devicePromise;

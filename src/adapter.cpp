@@ -134,7 +134,6 @@ public:
 
         auto shaderModuleDesc = WGPUShaderModuleDescriptor {
             .nextInChain = &wgslDesc.chain,
-            .label = { "shader" },
         };
 
         auto shaderModule = ref_ptr<WGPUShaderModule, wgpuShaderModuleAddRef, wgpuShaderModuleRelease> { wgpuDeviceCreateShaderModule(m_pDevice.get(), &shaderModuleDesc) };
@@ -142,7 +141,9 @@ public:
             .layout = pipelineLayout.get(),
             .compute = WGPUProgrammableStageDescriptor {
                 .module = shaderModule.get(),
-                .entryPoint = "main",
+                .entryPoint = {
+                    .data = "main",
+                    .length = 4 },
             },
         };
 
@@ -162,7 +163,7 @@ public:
         wgpuShaderModuleGetCompilationInfo(computePipelineDesc.compute.module, [](WGPUCompilationInfoRequestStatus status, WGPUCompilationInfo const* compilationInfo, void* userData) {
         if (compilationInfo) {
             for (uint32_t i = 0; i < compilationInfo->messageCount; ++i) {
-                printf("Message %d: %s\n", i, compilationInfo->messages[i].message);
+                printf("Message %d: %s\n", i, std::string { compilationInfo->messages[i].message.data, compilationInfo->messages[i].message.length }.c_str());
             }
             (*Promise<void>::GetState(userData))->SetValue();
         } }, compilationPromise.GetState().release());
