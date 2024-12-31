@@ -176,6 +176,45 @@ MATRIX_TEST(MatrixAdd)
     test(5000, 5000);
 }
 
+MATRIX_TEST(MatrixSelfAdd)
+{
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+        Matrix y { row, column };
+
+        std::vector<float> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
+
+        x.Write(std::span<float> { initData });
+        y.Write(std::span<float> { initData });
+
+        x += y;
+        ASSERT_EQ(x.Row(), row);
+        ASSERT_EQ(x.Column(), column);
+
+        auto res = x.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto r = 0; r < row; ++r) {
+            for (auto c = 0; c < column; ++c) {
+                ASSERT_FLOAT_EQ(res[r * column + c], 2 * initData[r * column + c]);
+            }
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
+    }
+
+    test(100, 100);
+    test(1000, 1000);
+    test(5000, 5000);
+}
+
 MATRIX_TEST(MatrixAddScalar)
 {
     auto test = [](size_t row, size_t column) {
@@ -352,5 +391,4 @@ MATRIX_TEST(MatrixTranspose)
             test(m, n);
         }
     }
-
 }
