@@ -12,11 +12,11 @@ endif()
 if ((NOT EXISTS ${WEBGPU_PATH}/libwebgpu_dawn.so) OR (NOT EXISTS ${WEBGPU_PATH}/webgpu.h))
     MESSAGE("Download libwebgpu_dawn.so and webgpu.h")
     file(DOWNLOAD
-        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.10.31/libwebgpu_dawn.so
+        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.11.30/libwebgpu_dawn.so
         ${WEBGPU_PATH}/libwebgpu_dawn.so
         SHOW_PROGRESS)
     file(DOWNLOAD
-        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.10.31/webgpu.h
+        https://github.com/xieyubo/libwebgpu_dawn/releases/download/2024.11.30/webgpu.h
         ${WEBGPU_PATH}/webgpu.h
         SHOW_PROGRESS)
 endif()
