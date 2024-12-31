@@ -9,6 +9,9 @@ export module cpp_matrix:host_matrix;
 namespace cpp_matrix {
 
 export class HostMatrix {
+    friend HostMatrix operator-(float v, const HostMatrix& m);
+    friend HostMatrix operator*(float v, const HostMatrix& m);
+
 public:
     HostMatrix() = default;
 
@@ -65,6 +68,20 @@ public:
             *pR++ = *p1++ + *p2++;
         }
         return res;
+    }
+
+    HostMatrix& operator+=(const HostMatrix& other)
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        auto* p1 = m_data.data();
+        auto* p2 = other.m_data.data();
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            *p1++ += *p2++;
+        }
+        return *this;
     }
 
     HostMatrix operator+(float v) const
@@ -127,6 +144,22 @@ public:
         return res;
     }
 
+    HostMatrix ElementProduct(const HostMatrix& other)
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        HostMatrix res { m_row, m_column };
+        auto* pR = res.m_data.data();
+        auto* p1 = m_data.data();
+        auto* p2 = other.m_data.data();
+        for (auto i = 0u; i < m_row * m_column; ++i) {
+            *pR++ = *p1++ * *p2++;
+        }
+        return res;
+    }
+
     float operator[](size_t row, size_t column) const
     {
         if (row >= m_row || column >= m_column) {
@@ -146,5 +179,27 @@ private:
     size_t m_column {};
     std::vector<float> m_data;
 };
+
+export HostMatrix operator-(float v, const HostMatrix& m)
+{
+    HostMatrix res { m.m_row, m.m_column };
+    auto* pR = res.m_data.data();
+    auto* p1 = m.m_data.data();
+    for (auto i = 0u; i < m.m_row * m.m_column; ++i) {
+        *pR++ = v - *p1++;
+    }
+    return res;
+}
+
+export HostMatrix operator*(float v, const HostMatrix& m)
+{
+    HostMatrix res { m.m_row, m.m_column };
+    auto* pR = res.m_data.data();
+    auto* p1 = m.m_data.data();
+    for (auto i = 0u; i < m.m_row * m.m_column; ++i) {
+        *pR++ = v * *p1++;
+    }
+    return res;
+}
 
 }

@@ -16,6 +16,9 @@ import :gpu_instance;
 namespace cpp_matrix {
 
 export class GpuMatrix {
+    friend GpuMatrix operator-(float v, const GpuMatrix& m);
+    friend GpuMatrix operator*(float v, const GpuMatrix& m);
+
 public:
     static bool IsSupported(size_t row, size_t column)
     {
@@ -193,6 +196,42 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
+    GpuMatrix& operator+=(const GpuMatrix& other)
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        // Caculate mat4x4
+        size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
+        if (N) {
+            auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
+@group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1[i] + input2[i];
+    }}
+}}
+)",
+                N);
+
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { GetBuffer(), BufferSize() },
+            };
+
+            auto adapter = GpuInstance::GetInstance().GetAdapter();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        }
+
+        return *this;
+    }
+
     GpuMatrix operator+(float v) const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
@@ -317,6 +356,42 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
+    GpuMatrix ElementProduct(const GpuMatrix& other)
+    {
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
+
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto output = GpuMatrix { m_row, m_column };
+
+        // Caculate vec4x4
+        size_t N = (m_paddingRow >> 2) * m_paddingColumn;
+        if (N) {
+            auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4f>;
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1[i] * input2[i];
+    }}
+}}
+)",
+                N);
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { output.GetBuffer(), output.BufferSize() },
+            };
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        }
+
+        return output;
+    }
+
     std::vector<float> Read() const
     {
         std::vector<float> out(m_row * m_column);
@@ -392,5 +467,69 @@ private:
     size_t m_paddingColumn {};
     ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };
+
+export GpuMatrix operator-(float v, const GpuMatrix& m)
+{
+    auto adapter = GpuInstance::GetInstance().GetAdapter();
+    auto vbuffer = adapter.CreateBuffer(1);
+    wgpuQueueWriteBuffer(adapter.GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+
+    auto output = GpuMatrix { m.m_row, m.m_column };
+
+    // Caculate mat4x4
+    size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
+    auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: f32;
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1 - input2[i];
+    }}
+}}
+)",
+        N);
+    auto parameters = std::vector<Parameter> {
+        { vbuffer.get(), sizeof(float) },
+        { m.GetBuffer(), m.BufferSize() },
+        { output.GetBuffer(), output.BufferSize() },
+    };
+    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+    return output;
+}
+
+export GpuMatrix operator*(float v, const GpuMatrix& m)
+{
+    auto adapter = GpuInstance::GetInstance().GetAdapter();
+    auto vbuffer = adapter.CreateBuffer(1);
+    wgpuQueueWriteBuffer(adapter.GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+
+    auto output = GpuMatrix { m.m_row, m.m_column };
+
+    // Caculate mat4x4
+    size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
+    auto code = std::format(R"(
+@group(0) @binding(0) var<storage, read_write> input1: f32;
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {}) {{
+        output[i] = input1 * input2[i];
+    }}
+}}
+)",
+        N);
+    auto parameters = std::vector<Parameter> {
+        { vbuffer.get(), sizeof(float) },
+        { m.GetBuffer(), m.BufferSize() },
+        { output.GetBuffer(), output.BufferSize() },
+    };
+    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+    return output;
+}
 
 }

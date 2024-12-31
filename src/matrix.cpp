@@ -18,6 +18,9 @@ export enum class MatrixType {
 };
 
 export class Matrix {
+    friend Matrix operator-(float v, const Matrix& m);
+    friend Matrix operator*(float v, const Matrix& m);
+
 public:
     static void SetDefaultMatrixType(MatrixType type)
     {
@@ -71,11 +74,6 @@ public:
         }
     }
 
-    operator bool() const
-    {
-        return Row() && Column();
-    }
-
     Matrix operator+(const Matrix& other) const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
@@ -83,6 +81,16 @@ public:
         } else {
             return std::get<GpuMatrix>(m_matrix).operator+(std::get<GpuMatrix>(other.m_matrix));
         }
+    }
+
+    Matrix& operator+=(const Matrix& other)
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            p->operator+=(std::get<HostMatrix>(other.m_matrix));
+        } else {
+            std::get<GpuMatrix>(m_matrix).operator+=(std::get<GpuMatrix>(other.m_matrix));
+        }
+        return *this;
     }
 
     Matrix operator-(const Matrix& other) const
@@ -174,6 +182,15 @@ public:
         }
     }
 
+    Matrix ElementProduct(const Matrix& other)
+    {
+        if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
+            return p->ElementProduct(std::get<HostMatrix>(other.m_matrix));
+        } else {
+            return std::get<GpuMatrix>(m_matrix).ElementProduct(std::get<GpuMatrix>(other.m_matrix));
+        }
+    }
+
     float operator[](size_t row, size_t column) const
     {
         if (auto p = std::get_if<HostMatrix>(&m_matrix)) {
@@ -217,6 +234,24 @@ private:
 
     std::variant<HostMatrix, GpuMatrix> m_matrix {};
 };
+
+export Matrix operator-(float v, const Matrix& m)
+{
+    if (auto p = std::get_if<HostMatrix>(&m.m_matrix)) {
+        return operator-(v, *p);
+    } else {
+        return operator-(v, std::get<GpuMatrix>(m.m_matrix));
+    }
+}
+
+export Matrix operator*(float v, const Matrix& m)
+{
+    if (auto p = std::get_if<HostMatrix>(&m.m_matrix)) {
+        return operator*(v, *p);
+    } else {
+        return operator*(v, std::get<GpuMatrix>(m.m_matrix));
+    }
+}
 
 MatrixType Matrix::s_defaultMatrixType { MatrixType::Auto };
 

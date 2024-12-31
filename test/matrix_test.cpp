@@ -23,7 +23,6 @@ MATRIX_TEST(DefaultConstructor)
     Matrix x {};
     ASSERT_EQ(x.Row(), 0);
     ASSERT_EQ(x.Column(), 0);
-    ASSERT_FALSE(!!x);
 }
 
 MATRIX_TEST(CreateRandomMatrix)
@@ -42,7 +41,6 @@ MATRIX_TEST(SetAbsoluteValue)
 {
     Matrix x {};
     x = 1.123f;
-    ASSERT_TRUE(!!x);
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 1);
 
@@ -57,7 +55,6 @@ MATRIX_TEST(SetVector)
 
     Matrix x {};
     x = initData;
-    ASSERT_TRUE(x);
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 3);
 
@@ -72,7 +69,6 @@ MATRIX_TEST(SetInitializeList)
 {
     Matrix x {};
     x = std::initializer_list<float> { 1.0f, 1.2f, 1.3f };
-    ASSERT_TRUE(x);
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 3);
 
@@ -90,7 +86,6 @@ MATRIX_TEST(SetSpan1)
 
     Matrix x {};
     x = span;
-    ASSERT_TRUE(x);
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 3);
 
@@ -108,7 +103,6 @@ MATRIX_TEST(SetSpan2)
 
     Matrix x {};
     x = span;
-    ASSERT_TRUE(x);
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 3);
 
@@ -132,7 +126,6 @@ MATRIX_TEST(ReadByRowAndColumn)
     // clang-format on
 
     x.Write(std::span<float> { initData });
-    ASSERT_TRUE(x);
     ASSERT_EQ(x.Row(), 3);
     ASSERT_EQ(x.Column(), 2);
 
@@ -338,7 +331,7 @@ MATRIX_TEST(MatrixTranspose)
         for (auto m = 0; m < M; ++m) {
             for (auto n = 0; n < N; ++n) {
                 initData[m * N + n] = m * 100 + n;
-        }
+            }
         }
         x.Write(std::span<float> { initData });
 
