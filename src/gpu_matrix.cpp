@@ -1,16 +1,16 @@
 module;
 
 #include <cassert>
-#include <coroutine>
 #include <format>
 #include <functional>
+#include <future>
 #include <span>
 #include <stdexcept>
 #include <vector>
 #include <webgpu/webgpu.h>
 
 export module cpp_matrix:gpu_matrix;
-import :ref_ptr;
+import :gpu_ref_ptr;
 import :gpu_instance;
 
 namespace cpp_matrix {
@@ -137,7 +137,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 )",
                 N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
 
             code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input: array<mat4x4f>;
@@ -154,7 +154,7 @@ fn main() {{
                 { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }).await_resume();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() });
         }
 
         return output;
@@ -190,7 +190,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -230,7 +230,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             { vbuffer.get(), sizeof(float) },
             { output.GetBuffer(), output.BufferSize() },
         };
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -264,7 +264,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -294,7 +294,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         };
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -322,7 +322,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         };
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -356,7 +356,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -407,22 +407,24 @@ private:
             .size = bufferSize,
         };
 
-        auto pReadbackBuffer = ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(adapter.GetDevice(), &readbackBufferDescriptor) };
+        auto pReadbackBuffer = gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(adapter.GetDevice(), &readbackBufferDescriptor) };
 
         auto commandEncoder = wgpuDeviceCreateCommandEncoder(adapter.GetDevice(), nullptr);
         wgpuCommandEncoderCopyBufferToBuffer(commandEncoder, m_pBuffer.get(), 0, pReadbackBuffer.get(), 0, bufferSize);
         auto commandBuffer = wgpuCommandEncoderFinish(commandEncoder, nullptr);
 
-        auto submitPromise = Promise<WGPUQueueWorkDoneStatus>();
+        auto submitPromise = std::promise<WGPUQueueWorkDoneStatus>();
+        auto submitFuture = submitPromise.get_future();
         wgpuQueueSubmit(adapter.GetQueue(), 1, &commandBuffer);
-        wgpuQueueOnSubmittedWorkDone(adapter.GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { (*Promise<WGPUQueueWorkDoneStatus>::GetState(callbackData))->SetValue(status); }, submitPromise.GetState().release());
-        if (auto status = submitPromise.await_resume(); status != WGPUQueueWorkDoneStatus_Success) {
+        wgpuQueueOnSubmittedWorkDone(adapter.GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { ((std::promise<WGPUQueueWorkDoneStatus>*)callbackData)->set_value(status); }, &submitPromise);
+        if (auto status = Wait(submitFuture); status != WGPUQueueWorkDoneStatus_Success) {
             throw std::runtime_error { "wgpuQueueOnSubmittedWorkDone failed." };
         }
 
-        auto mapPromise = Promise<WGPUBufferMapAsyncStatus>();
-        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { (*Promise<WGPUBufferMapAsyncStatus>::GetState(captureData))->SetValue(status); }, mapPromise.GetState().release());
-        if (auto status = mapPromise.await_resume(); status != WGPUBufferMapAsyncStatus_Success) {
+        auto mapPromise = std::promise<WGPUBufferMapAsyncStatus>();
+        auto mapFuture = mapPromise.get_future();
+        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { ((std::promise<WGPUBufferMapAsyncStatus>*)captureData)->set_value(status); }, &mapPromise);
+        if (auto status = Wait(mapFuture); status != WGPUBufferMapAsyncStatus_Success) {
             throw std::runtime_error { "wgpuBufferMapAsync failed." };
         }
 
@@ -431,11 +433,20 @@ private:
         wgpuBufferUnmap(pReadbackBuffer.get());
     }
 
+    template <typename T>
+    T Wait(std::future<T>& future) const
+    {
+        while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
+            ProcessGpuInstanceEvents();
+        }
+        return future.get();
+    }
+
     size_t m_row {};
     size_t m_column {};
     size_t m_paddingRow {};
     size_t m_paddingColumn {};
-    ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
+    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };
 
 export GpuMatrix operator-(float v, const GpuMatrix& m)
@@ -466,7 +477,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
-    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
     return output;
 }
 
@@ -498,7 +509,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
-    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256).await_resume();
+    adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
     return output;
 }
 

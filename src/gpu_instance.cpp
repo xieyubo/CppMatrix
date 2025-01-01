@@ -1,16 +1,14 @@
 module;
 
 #include <cassert>
-#include <coroutine>
 #include <functional>
+#include <future>
 #include <memory>
 #include <webgpu/webgpu.h>
 
 export module cpp_matrix:gpu_instance;
 import :adapter;
-import :ref_ptr;
-import :promise;
-import :log;
+import :gpu_ref_ptr;
 
 namespace cpp_matrix {
 
@@ -29,9 +27,9 @@ public:
     {
     }
 
-    Adapter GetAdapter()
+    GpuAdapter GetAdapter()
     {
-        static Adapter adapter { RequestAdapter().await_resume() };
+        static GpuAdapter adapter { RequestAdapter() };
         return adapter;
     }
 
@@ -41,18 +39,20 @@ public:
     }
 
 private:
-    Promise<Adapter> RequestAdapter()
+    GpuAdapter RequestAdapter()
     {
-        using AdapterPtr = ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
-        using DevicePtr = ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease>;
+        using AdapterPtr = gpu_ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
+        using DevicePtr = gpu_ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease>;
 
         // Request adapter.
-        auto adapterPromise = Promise<AdapterPtr>();
-        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, WGPUStringView message, void* pUserData) { (*Promise<AdapterPtr>::GetState(pUserData))->SetValue(AdapterPtr { adapter }); }, adapterPromise.GetState().release());
-        auto pAdapter = co_await adapterPromise;
+        auto adapterPromise = std::promise<AdapterPtr>();
+        auto adapterFuture = adapterPromise.get_future();
+        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr, [](WGPURequestAdapterStatus status, WGPUAdapter adapter, WGPUStringView message, void* pUserData) { ((std::promise<AdapterPtr>*)pUserData)->set_value(AdapterPtr { adapter }); }, &adapterPromise);
+        auto pAdapter = Wait(adapterFuture);
 
         // Request device.
-        auto devicePromise = Promise<DevicePtr>();
+        auto devicePromise = std::promise<DevicePtr>();
+        auto deviceFuture = devicePromise.get_future();
         WGPURequiredLimits requiredLimis = WGPU_REQUIRED_LIMITS_INIT;
         // Currently we only support offset aligment is 16.
         requiredLimis.limits.minStorageBufferOffsetAlignment = 16;
@@ -60,14 +60,23 @@ private:
         descriptor.requiredLimits = &requiredLimis;
         wgpuAdapterRequestDevice(pAdapter.get(), &descriptor, [](WGPURequestDeviceStatus status, WGPUDevice device, WGPUStringView message, void* pUserData) { 
             assert(status == WGPURequestDeviceStatus_Success);
-            (*Promise<DevicePtr>::GetState(pUserData))->SetValue(DevicePtr { device }); }, devicePromise.GetState().release());
-        auto pDevice = co_await devicePromise;
+            ((std::promise<DevicePtr>*)pUserData)->set_value(DevicePtr { device }); }, &devicePromise);
+        auto pDevice = Wait(deviceFuture);
 
         // All done.
-        co_return { pAdapter.release(), pDevice.release() };
+        return { pAdapter.release(), pDevice.release() };
     }
 
-    ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
+    template <typename T>
+    T Wait(std::future<T>& future)
+    {
+        while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
+            ProcessGpuInstanceEvents();
+        }
+        return future.get();
+    }
+
+    gpu_ref_ptr<WGPUInstance, wgpuInstanceAddRef, wgpuInstanceRelease> m_pInstance {};
 };
 
 void ProcessGpuInstanceEvents()

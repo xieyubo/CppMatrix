@@ -2,29 +2,29 @@ module;
 
 #include <cstddef>
 
-export module cpp_matrix:ref_ptr;
+export module cpp_matrix:gpu_ref_ptr;
 
 namespace cpp_matrix {
 
 export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle), void (*GPURelease)(TGPUNativeHandle)>
-class ref_ptr {
+class gpu_ref_ptr {
 public:
-    ref_ptr() = default;
+    gpu_ref_ptr() = default;
 
-    ref_ptr(const ref_ptr& obj)
+    gpu_ref_ptr(const gpu_ref_ptr& obj)
     {
         if ((m_handle = obj.m_handle)) {
             GPUReference(m_handle);
         }
     }
 
-    ref_ptr(ref_ptr&& obj)
+    gpu_ref_ptr(gpu_ref_ptr&& obj)
     {
         m_handle = obj.m_handle;
         obj.m_handle = nullptr;
     }
 
-    explicit ref_ptr(TGPUNativeHandle handle)
+    explicit gpu_ref_ptr(TGPUNativeHandle handle)
         : m_handle { handle }
     {
     }
@@ -44,7 +44,7 @@ public:
         return handle;
     }
 
-    ref_ptr& operator=(ref_ptr&& r)
+    gpu_ref_ptr& operator=(gpu_ref_ptr&& r)
     {
         if (m_handle != r.m_handle) {
             *this = nullptr;
@@ -54,7 +54,7 @@ public:
         return *this;
     }
 
-    ref_ptr& operator=(std::nullptr_t)
+    gpu_ref_ptr& operator=(std::nullptr_t)
     {
         if (m_handle) {
             GPURelease(m_handle);
