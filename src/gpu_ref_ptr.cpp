@@ -1,10 +1,20 @@
 module;
 
 #include <cstddef>
+#include <future>
+#include <webgpu/webgpu.h>
 
 export module cpp_matrix:gpu_ref_ptr;
 
 namespace cpp_matrix {
+
+void ProcessGpuInstanceEvents();
+
+export struct Parameter {
+    WGPUBuffer buffer {};
+    size_t size {};
+    size_t offset {};
+};
 
 export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle), void (*GPURelease)(TGPUNativeHandle)>
 class gpu_ref_ptr {
@@ -44,6 +54,17 @@ public:
         return handle;
     }
 
+    gpu_ref_ptr& operator=(const gpu_ref_ptr& r)
+    {
+        if (m_handle != r.m_handle) {
+            *this = nullptr;
+            if ((m_handle = r.m_handle)) {
+                GPUReference(m_handle);
+            }
+        }
+        return *this;
+    }
+
     gpu_ref_ptr& operator=(gpu_ref_ptr&& r)
     {
         if (m_handle != r.m_handle) {
@@ -68,6 +89,11 @@ public:
         return m_handle;
     }
 
+    operator TGPUNativeHandle() const
+    {
+        return m_handle;
+    }
+
     TGPUNativeHandle get() const
     {
         return m_handle;
@@ -78,8 +104,28 @@ public:
         return &m_handle;
     }
 
+    const TGPUNativeHandle* operator&() const
+    {
+        return &m_handle;
+    }
+
 protected:
     TGPUNativeHandle m_handle {};
 };
+
+export using GpuDevicePtr = gpu_ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease>;
+export using GpuCommandBufferPtr = gpu_ref_ptr<WGPUCommandBuffer, wgpuCommandBufferAddRef, wgpuCommandBufferRelease>;
+export using GpuQueuePtr = gpu_ref_ptr<WGPUQueue, wgpuQueueAddRef, wgpuQueueRelease>;
+export using GpuAdapterPtr = gpu_ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
+export using GpuShaderModule = gpu_ref_ptr<WGPUShaderModule, wgpuShaderModuleAddRef, wgpuShaderModuleRelease>;
+
+template <typename T>
+T Wait(std::future<T>& future)
+{
+    while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
+        ProcessGpuInstanceEvents();
+    }
+    return future.get();
+}
 
 }

@@ -138,14 +138,14 @@ MATRIX_TEST(ReadByRowAndColumn)
 
 MATRIX_TEST(MatrixAdd)
 {
-    auto test = [](size_t row, size_t column) {
+    auto test = [](size_t row, size_t column, int base) {
         Matrix x { row, column };
         Matrix y { row, column };
 
         std::vector<float> initData(row * column);
         auto i = 1;
         for (auto& e : initData) {
-            e = i++;
+            e = base + i++;
         }
 
         x.Write(std::span<float> { initData });
@@ -166,13 +166,19 @@ MATRIX_TEST(MatrixAdd)
 
     for (auto row = 1u; row <= 10; ++row) {
         for (auto column = 1u; column <= 10; ++column) {
-            test(row, column);
+            test(row, column, row * column);
         }
     }
 
-    test(100, 100);
-    test(1000, 1000);
-    test(5000, 5000);
+    test(100, 100, 10);
+    test(100, 100, 20);
+    test(100, 100, 30);
+    test(1000, 1000, 40);
+    test(1000, 1000, 50);
+    test(1000, 1000, 60);
+    test(5000, 5000, 70);
+    test(5000, 5000, 80);
+    test(5000, 5000, 90);
 }
 
 MATRIX_TEST(MatrixSelfAdd)
@@ -290,12 +296,12 @@ MATRIX_TEST(MatrixSubScalar)
 
 MATRIX_TEST(MatrixMul)
 {
-    auto createMatrix = [](auto N, auto M) {
+    auto createMatrix = [](auto N, auto M, auto base) {
         Matrix x { N, M };
         std::vector<float> initData(N * M);
         for (auto n = 0; n < N; ++n) {
             for (auto m = 0; m < M; ++m) {
-                initData[n * M + m] = (n + 1) + ((m + 1) * 0.1f);
+                initData[n * M + m] = base + (n + 1) + ((m + 1) * 0.1f);
             }
         }
         x.Write(std::span<float> { initData });
@@ -303,9 +309,9 @@ MATRIX_TEST(MatrixMul)
     };
 
     // NxM * MxP
-    auto test = [&createMatrix](size_t n, size_t m, size_t p) {
-        auto x = createMatrix(n, m);
-        auto y = createMatrix(m, p);
+    auto test = [&createMatrix](size_t n, size_t m, size_t p, float base) {
+        auto x = createMatrix(n, m, base);
+        auto y = createMatrix(m, p, base);
 
         auto z = x * y;
         ASSERT_EQ(z.Row(), n);
@@ -316,8 +322,8 @@ MATRIX_TEST(MatrixMul)
             for (auto c = 0; c < p; ++c) {
                 float sum = 0.f;
                 for (auto i = 0; i < m; ++i) {
-                    auto a = (r + 1) + ((i + 1) * 0.1f);
-                    auto b = (i + 1) + ((c + 1) * 0.1f);
+                    auto a = base + (r + 1) + ((i + 1) * 0.1f);
+                    auto b = base + (i + 1) + ((c + 1) * 0.1f);
                     sum += a * b;
                 }
                 ASSERT_FLOAT_EQ((res[r * p + c]), sum);
@@ -328,13 +334,17 @@ MATRIX_TEST(MatrixMul)
     for (auto n = 1u; n <= 16; ++n) {
         for (auto m = 1u; m <= 16; ++m) {
             for (auto p = 1u; p <= 16; ++p) {
-                test(n, m, p);
+                test(n, m, p, (n * 0.1f + m * 0.01f + n * 0.001f));
             }
         }
     }
 
-    test(20, 20, 20);
-    test(50, 50, 50);
+    test(20, 20, 20, 0.1f);
+    test(20, 20, 20, 0.2f);
+    test(20, 20, 20, 0.3f);
+    test(50, 50, 50, 0.1f);
+    test(50, 50, 50, 0.2f);
+    test(50, 50, 50, 0.3f);
 }
 
 MATRIX_TEST(MatrixSigmoid)

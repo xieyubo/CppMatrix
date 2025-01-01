@@ -18,12 +18,6 @@ void ProcessGpuInstanceEvents();
 export class Matrix;
 export class GpuMatrix;
 
-export struct Parameter {
-    WGPUBuffer buffer {};
-    size_t size {};
-    size_t offset {};
-};
-
 export class GpuAdapter {
 public:
     GpuAdapter() = default;

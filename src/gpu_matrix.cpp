@@ -6,12 +6,14 @@ module;
 #include <future>
 #include <span>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 #include <webgpu/webgpu.h>
 
 export module cpp_matrix:gpu_matrix;
 import :gpu_ref_ptr;
 import :gpu_instance;
+import :gpu_compute_core;
 
 namespace cpp_matrix {
 
@@ -69,6 +71,7 @@ public:
 
     GpuMatrix& operator=(std::vector<float> data)
     {
+        m_gpu_add_core = {};
         m_row = 1;
         m_column = data.size();
         m_paddingRow = 4;
@@ -110,13 +113,10 @@ public:
         size_t N = (m_paddingColumn >> 2) * (other.m_paddingColumn >> 2) * (m_paddingRow >> 2);
         auto intermediaBuffer = adapter.CreateBuffer(N * 4 * 4);
         if (N) {
-            auto parameters = std::vector<Parameter> {
-                { GetBuffer(), BufferSize() },
-                { other.GetBuffer(), other.BufferSize() },
-                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
-            };
-
-            auto code = std::format(R"(
+            static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+            auto it = computeCores.find(std::format("{}x{}x{}", m_row, m_column, other.m_column));
+            if (it == computeCores.end()) {
+                auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
 @group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
 @group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
@@ -136,10 +136,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-                N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+                    N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
 
-            code = std::format(R"(
+                it = computeCores.emplace(std::format("{}x{}x{}", m_row, m_column, other.m_column), GpuComputeCore { adapter.GetDevice(), code }).first;
+            }
+
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
+            };
+            it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
+
+            static thread_local std::unordered_map<std::string, GpuComputeCore> sumComputeCores {};
+            it = sumComputeCores.find(std::format("{}x{}x{}", m_row, m_column, other.m_column));
+            if (it == sumComputeCores.end()) {
+                auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input: array<mat4x4f>;
 @group(0) @binding(1) var<storage, read_write> output: array<mat4x4f>;
 @compute @workgroup_size(1)
@@ -149,12 +161,15 @@ fn main() {{
     }}
 }}
 )",
-                N, m_paddingColumn >> 2);
+                    N, m_paddingColumn >> 2);
+                it = sumComputeCores.emplace(std::format("{}x{}x{}", m_row, m_column, other.m_column), GpuComputeCore { adapter.GetDevice(), code }).first;
+            }
+
             parameters = std::vector<Parameter> {
                 { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() });
+            it->second.Execute({ parameters.begin(), parameters.end() }, 1, 1);
         }
 
         return output;
@@ -162,6 +177,7 @@ fn main() {{
 
     GpuMatrix operator+(const GpuMatrix& other) const
     {
+
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
@@ -172,7 +188,10 @@ fn main() {{
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
         if (N) {
-            auto code = std::format(R"(
+            static thread_local std::unordered_map<std::string, GpuComputeCore> m_computeCores {};
+            auto it = m_computeCores.find(std::format("{}x{}", m_row, m_column));
+            if (it == m_computeCores.end()) {
+                auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
 @group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
 @group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
@@ -184,13 +203,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-                N);
+                    N);
+                it = m_computeCores.emplace(std::format("{}x{}", m_row, m_column), GpuComputeCore { adapter.GetDevice(), code }).first;
+            }
+
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+            it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -212,7 +234,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
-        auto code = std::format(R"(
+
+        static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+        auto it = computeCores.find(std::format("{}", N));
+        if (it == computeCores.end()) {
+            auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input1: array<vec4f>;
 @group(0) @binding(1) var<storage, read_write> input2: f32;
 @group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
@@ -224,13 +250,16 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-            N);
+                N);
+            it = computeCores.emplace(std::format("{}", N), GpuComputeCore { adapter.GetDevice(), code }).first;
+        }
+
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
             { vbuffer.get(), sizeof(float) },
             { output.GetBuffer(), output.BufferSize() },
         };
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+        it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -246,7 +275,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
         if (N) {
-            auto code = std::format(R"(
+            static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+            auto it = computeCores.find(std::format("{}", N));
+            if (it == computeCores.end()) {
+                auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
 @group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
 @group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
@@ -258,13 +290,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-                N);
+                    N);
+                it = computeCores.emplace(std::format("{}", N), GpuComputeCore { adapter.GetDevice(), code }).first;
+            }
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+            it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -272,11 +306,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 
     GpuMatrix Sigmoid() const
     {
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
-        auto code = std::format(R"(
+        static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+        auto it = computeCores.find(std::format("{}", N));
+        if (it == computeCores.end()) {
+            auto code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input: array<vec4f>;
 @group(0) @binding(1) var<storage, read_write> output: array<vec4f>;
 @compute @workgroup_size(256)
@@ -287,14 +325,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-            N);
+                N);
+            it = computeCores.emplace(std::format("{}", N), GpuComputeCore { adapter.GetDevice(), code }).first;
+        }
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
         };
 
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+        it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -316,13 +355,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 )",
             N, m_paddingRow >> 2, m_paddingColumn >> 2);
+
+        static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+        auto it = computeCores.find(code);
+        if (it == computeCores.end()) {
+            auto adapter = GpuInstance::GetInstance().GetAdapter();
+            it = computeCores.emplace(code, GpuComputeCore { adapter.GetDevice(), code }).first;
+        }
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
         };
 
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
-        adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+        it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -351,12 +396,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }}
 )",
                 N);
+
+            static thread_local std::unordered_map<std::string, GpuComputeCore> computeCores {};
+            auto it = computeCores.find(code);
+            if (it == computeCores.end()) {
+                auto adapter = GpuInstance::GetInstance().GetAdapter();
+                it = computeCores.emplace(code, GpuComputeCore { adapter.GetDevice(), code }).first;
+            }
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter.Run(code.c_str(), { parameters.begin(), parameters.end() }, N, 256);
+            it->second.Execute({ parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -447,6 +499,7 @@ private:
     size_t m_paddingRow {};
     size_t m_paddingColumn {};
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
+    mutable GpuComputeCore m_gpu_add_core {};
 };
 
 export GpuMatrix operator-(float v, const GpuMatrix& m)
