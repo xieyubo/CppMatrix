@@ -139,7 +139,7 @@ public:
         auto shaderModule = ref_ptr<WGPUShaderModule, wgpuShaderModuleAddRef, wgpuShaderModuleRelease> { wgpuDeviceCreateShaderModule(m_pDevice.get(), &shaderModuleDesc) };
         auto computePipelineDesc = WGPUComputePipelineDescriptor {
             .layout = pipelineLayout.get(),
-            .compute = WGPUProgrammableStageDescriptor {
+            .compute = {
                 .module = shaderModule.get(),
                 .entryPoint = {
                     .data = "main",
