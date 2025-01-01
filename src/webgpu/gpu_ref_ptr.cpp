@@ -4,11 +4,11 @@ module;
 #include <future>
 #include <webgpu/webgpu.h>
 
-export module cpp_matrix:gpu_ref_ptr;
+export module webgpu:gpu_ref_ptr;
 
-namespace cpp_matrix {
+namespace webgpu {
 
-void ProcessGpuInstanceEvents();
+export void ProcessGpuInstanceEvents();
 
 export struct Parameter {
     WGPUBuffer buffer {};

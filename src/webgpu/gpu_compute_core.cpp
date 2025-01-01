@@ -6,10 +6,10 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-export module cpp_matrix:gpu_compute_core;
+export module webgpu:gpu_compute_core;
 import :gpu_ref_ptr;
 
-namespace cpp_matrix {
+namespace webgpu {
 
 export class GpuComputeCore {
 public:

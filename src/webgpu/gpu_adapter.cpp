@@ -8,15 +8,12 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
-export module cpp_matrix:adapter;
+export module webgpu:adapter;
 import :gpu_ref_ptr;
 
-namespace cpp_matrix {
+namespace webgpu {
 
 void ProcessGpuInstanceEvents();
-
-export class Matrix;
-export class GpuMatrix;
 
 export class GpuAdapter {
 public:

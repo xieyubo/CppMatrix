@@ -10,10 +10,11 @@ module;
 #include <vector>
 #include <webgpu/webgpu.h>
 
+import webgpu;
+
+using namespace webgpu;
+
 export module cpp_matrix:gpu_matrix;
-import :gpu_ref_ptr;
-import :gpu_instance;
-import :gpu_compute_core;
 
 namespace cpp_matrix {
 

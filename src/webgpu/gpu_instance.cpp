@@ -6,11 +6,11 @@ module;
 #include <memory>
 #include <webgpu/webgpu.h>
 
-export module cpp_matrix:gpu_instance;
+export module webgpu:gpu_instance;
 import :adapter;
 import :gpu_ref_ptr;
 
-namespace cpp_matrix {
+namespace webgpu {
 
 export class GpuInstance {
 public:
