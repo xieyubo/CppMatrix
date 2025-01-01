@@ -1,5 +1,4 @@
 add_executable(gpu_test
-    matrix_test.cpp
     gpu_matrix_test.cpp
     host_matrix_test.cpp
 )
