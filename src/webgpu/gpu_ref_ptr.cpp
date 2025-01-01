@@ -118,6 +118,7 @@ export using GpuCommandBufferPtr = gpu_ref_ptr<WGPUCommandBuffer, wgpuCommandBuf
 export using GpuQueuePtr = gpu_ref_ptr<WGPUQueue, wgpuQueueAddRef, wgpuQueueRelease>;
 export using GpuAdapterPtr = gpu_ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
 export using GpuShaderModule = gpu_ref_ptr<WGPUShaderModule, wgpuShaderModuleAddRef, wgpuShaderModuleRelease>;
+export using GpuShaderModulePtr = gpu_ref_ptr<WGPUShaderModule, wgpuShaderModuleAddRef, wgpuShaderModuleRelease>;
 
 template <typename T>
 T Wait(std::future<T>& future)

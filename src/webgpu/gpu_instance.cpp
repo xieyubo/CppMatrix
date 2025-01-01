@@ -27,10 +27,10 @@ public:
     {
     }
 
-    GpuAdapter GetAdapter()
+    std::shared_ptr<GpuAdapter> GetAdapter()
     {
-        static GpuAdapter adapter { RequestAdapter() };
-        return adapter;
+        static auto s_adapter { RequestAdapter() };
+        return s_adapter;
     }
 
     void ProcessEvents()
@@ -39,7 +39,7 @@ public:
     }
 
 private:
-    GpuAdapter RequestAdapter()
+    std::shared_ptr<GpuAdapter> RequestAdapter()
     {
         using AdapterPtr = gpu_ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease>;
         using DevicePtr = gpu_ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease>;
@@ -64,7 +64,7 @@ private:
         auto pDevice = Wait(deviceFuture);
 
         // All done.
-        return { pAdapter.release(), pDevice.release() };
+        return std::make_shared<GpuAdapter>(pAdapter.release(), pDevice.release());
     }
 
     template <typename T>
