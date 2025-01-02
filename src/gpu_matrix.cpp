@@ -139,7 +139,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
             };
-            adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
 
             code = std::format(R"(
 @group(0) @binding(0) var<storage, read_write> input: array<mat4x4f>;
@@ -156,7 +156,7 @@ fn main() {{
                 { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter->Execute(code, { parameters.begin(), parameters.end() }, 1, 1);
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, 1, 1);
         }
 
         return output;
@@ -170,7 +170,6 @@ fn main() {{
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
@@ -194,7 +193,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -234,7 +233,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             { vbuffer.get(), sizeof(float) },
             { output.GetBuffer(), output.BufferSize() },
         };
-        adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+        webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -244,7 +243,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
@@ -268,7 +266,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -276,7 +274,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 
     GpuMatrix Sigmoid() const
     {
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto output = GpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
@@ -297,7 +294,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
         };
-        adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+        webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -323,8 +320,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
         };
-        auto adapter = GpuInstance::GetInstance().GetAdapter();
-        adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+        webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         return output;
     }
 
@@ -358,7 +354,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 { other.GetBuffer(), other.BufferSize() },
                 { output.GetBuffer(), output.BufferSize() },
             };
-            adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
         }
 
         return output;
@@ -479,7 +475,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
-    adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+    webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
     return output;
 }
 
@@ -511,7 +507,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
-    adapter->Execute(code, { parameters.begin(), parameters.end() }, N, 256);
+    webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
     return output;
 }
 }
