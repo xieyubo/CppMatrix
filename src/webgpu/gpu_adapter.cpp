@@ -26,19 +26,29 @@ public:
     {
         m_pQueue.reset(wgpuDeviceGetQueue(m_pDevice.get()));
 
-        if (wgpuAdapterGetLimits(m_pAdapter.get(), &m_limits) != WGPUStatus_Success) {
+        WGPUSupportedLimits supportedLimits {};
+        if (wgpuAdapterGetLimits(m_pAdapter.get(), &supportedLimits) != WGPUStatus_Success) {
             throw std::runtime_error { "wgpuAdapterGetLimits failed." };
         }
+        m_limits = supportedLimits.limits;
     }
 
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t elementSize)
     {
+        auto requiredSize = elementSize * sizeof(float);
+        if (requiredSize > m_limits.maxStorageBufferBindingSize || requiredSize > m_limits.maxBufferSize) {
+            throw std::runtime_error { std::format("Buffer size is too big (required size is {}, limits is "
+                                                   "maxStorageBufferBindingSize: {}, maxBufferSize: {}).",
+                requiredSize, m_limits.maxStorageBufferBindingSize, m_limits.maxBufferSize) };
+        }
+
         auto bufferDesc = WGPUBufferDescriptor {
             .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-            .size = sizeof(float) * elementSize,
+            .size = requiredSize,
         };
 
-        return gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(m_pDevice.get(), &bufferDesc) };
+        return gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(
+            m_pDevice.get(), &bufferDesc) };
     }
 
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
@@ -46,20 +56,9 @@ public:
         return CreateBuffer(row * column);
     }
 
-    const WGPUSupportedLimits& GetLimits() const
-    {
-        return m_limits;
-    }
+    WGPUDevice GetDevice() const { return m_pDevice.get(); }
 
-    WGPUDevice GetDevice() const
-    {
-        return m_pDevice.get();
-    }
-
-    WGPUQueue GetQueue() const
-    {
-        return m_pQueue.get();
-    }
+    WGPUQueue GetQueue() const { return m_pQueue.get(); }
 
     void Execute(std::string_view shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize)
     {
@@ -106,7 +105,9 @@ private:
             .entries = layoutEntries.data(),
         };
 
-        auto layout = gpu_ref_ptr<WGPUBindGroupLayout, wgpuBindGroupLayoutAddRef, wgpuBindGroupLayoutRelease> { wgpuDeviceCreateBindGroupLayout(m_pDevice.get(), &layoutDesc) };
+        auto layout = gpu_ref_ptr<WGPUBindGroupLayout, wgpuBindGroupLayoutAddRef, wgpuBindGroupLayoutRelease> {
+            wgpuDeviceCreateBindGroupLayout(m_pDevice.get(), &layoutDesc)
+        };
 
         // Create bind group entries.
         auto bindGroupEntries = std::vector<WGPUBindGroupEntry>(parameters.size());
@@ -124,7 +125,9 @@ private:
             .entries = bindGroupEntries.data(),
         };
 
-        auto bindGroup = gpu_ref_ptr<WGPUBindGroup, wgpuBindGroupAddRef, wgpuBindGroupRelease> { wgpuDeviceCreateBindGroup(m_pDevice.get(), &bindGroupDesc) };
+        auto bindGroup = gpu_ref_ptr<WGPUBindGroup, wgpuBindGroupAddRef, wgpuBindGroupRelease> {
+            wgpuDeviceCreateBindGroup(m_pDevice.get(), &bindGroupDesc)
+        };
 
         // Create pipeline.
         auto pipelineLayoutDesc = WGPUPipelineLayoutDescriptor {
@@ -132,7 +135,9 @@ private:
             .bindGroupLayouts = layout.get_addr(),
         };
 
-        auto pipelineLayout = gpu_ref_ptr<WGPUPipelineLayout, wgpuPipelineLayoutAddRef, wgpuPipelineLayoutRelease> { wgpuDeviceCreatePipelineLayout(m_pDevice.get(), &pipelineLayoutDesc) };
+        auto pipelineLayout = gpu_ref_ptr<WGPUPipelineLayout, wgpuPipelineLayoutAddRef, wgpuPipelineLayoutRelease> {
+            wgpuDeviceCreatePipelineLayout(m_pDevice.get(), &pipelineLayoutDesc)
+        };
 
         // Create wgsl pipeline.
         auto computePipelineDesc = WGPUComputePipelineDescriptor {
@@ -145,39 +150,57 @@ private:
             },
         };
 
-        auto computePipeline = gpu_ref_ptr<WGPUComputePipeline, wgpuComputePipelineAddRef, wgpuComputePipelineRelease> { wgpuDeviceCreateComputePipeline(m_pDevice.get(), &computePipelineDesc) };
+        auto computePipeline = gpu_ref_ptr<WGPUComputePipeline, wgpuComputePipelineAddRef, wgpuComputePipelineRelease> {
+            wgpuDeviceCreateComputePipeline(m_pDevice.get(), &computePipelineDesc)
+        };
 
         // reset command buffer.
-        auto commandEncoder = gpu_ref_ptr<WGPUCommandEncoder, wgpuCommandEncoderAddRef, wgpuCommandEncoderRelease> { wgpuDeviceCreateCommandEncoder(m_pDevice.get(), nullptr) };
-        auto computePassEncoder = gpu_ref_ptr<WGPUComputePassEncoder, wgpuComputePassEncoderAddRef, wgpuComputePassEncoderRelease> { wgpuCommandEncoderBeginComputePass(commandEncoder.get(), nullptr) };
+        auto commandEncoder = gpu_ref_ptr<WGPUCommandEncoder, wgpuCommandEncoderAddRef, wgpuCommandEncoderRelease> {
+            wgpuDeviceCreateCommandEncoder(m_pDevice.get(), nullptr)
+        };
+        auto computePassEncoder
+            = gpu_ref_ptr<WGPUComputePassEncoder, wgpuComputePassEncoderAddRef, wgpuComputePassEncoderRelease> {
+                  wgpuCommandEncoderBeginComputePass(commandEncoder.get(), nullptr)
+              };
         wgpuComputePassEncoderSetPipeline(computePassEncoder.get(), computePipeline.get());
         wgpuComputePassEncoderSetBindGroup(computePassEncoder.get(), 0, bindGroup.get(), 0, nullptr);
         wgpuComputePassEncoderDispatchWorkgroups(computePassEncoder.get(), (N + (batchSize - 1)) / batchSize, 1, 1);
         wgpuComputePassEncoderEnd(computePassEncoder.get());
 
-        auto commandBuffer = gpu_ref_ptr<WGPUCommandBuffer, wgpuCommandBufferAddRef, wgpuCommandBufferRelease> { wgpuCommandEncoderFinish(commandEncoder.get(), nullptr) };
+        auto commandBuffer = gpu_ref_ptr<WGPUCommandBuffer, wgpuCommandBufferAddRef, wgpuCommandBufferRelease> {
+            wgpuCommandEncoderFinish(commandEncoder.get(), nullptr)
+        };
 
         auto compilationPromise = std::promise<void> {};
         auto compilationFuture = compilationPromise.get_future();
-        wgpuShaderModuleGetCompilationInfo(computePipelineDesc.compute.module, [](WGPUCompilationInfoRequestStatus status, WGPUCompilationInfo const* compilationInfo, void* userData) {
-        if (compilationInfo) {
-            for (uint32_t i = 0; i < compilationInfo->messageCount; ++i) {
-                printf("Message %d: %s\n", i, std::string { compilationInfo->messages[i].message.data, compilationInfo->messages[i].message.length }.c_str());
-            }
-            ((std::promise<void>*)userData)->set_value();
-        } }, &compilationPromise);
+        wgpuShaderModuleGetCompilationInfo(
+            computePipelineDesc.compute.module,
+            [](WGPUCompilationInfoRequestStatus status, WGPUCompilationInfo const* compilationInfo, void* userData) {
+                if (compilationInfo) {
+                    for (uint32_t i = 0; i < compilationInfo->messageCount; ++i) {
+                        printf("Message %d: %s\n", i,
+                            std::string {
+                                compilationInfo->messages[i].message.data, compilationInfo->messages[i].message.length }
+                                .c_str());
+                    }
+                    ((std::promise<void>*)userData)->set_value();
+                }
+            },
+            &compilationPromise);
         Wait(compilationFuture);
 
         // Submit the command buffer.
         auto submitPromise = std::promise<void> {};
         auto submitFuture = submitPromise.get_future();
         wgpuQueueSubmit(m_pQueue.get(), 1, commandBuffer.get_addr());
-        wgpuQueueOnSubmittedWorkDone(m_pQueue.get(), [](WGPUQueueWorkDoneStatus status, void* data) { ((std::promise<void>*)data)->set_value(); }, &submitPromise);
+        wgpuQueueOnSubmittedWorkDone(
+            m_pQueue.get(),
+            [](WGPUQueueWorkDoneStatus status, void* data) { ((std::promise<void>*)data)->set_value(); },
+            &submitPromise);
         Wait(submitFuture);
     }
 
-    template <typename T>
-    T Wait(std::future<T>& future)
+    template <typename T> T Wait(std::future<T>& future)
     {
         while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
             ProcessGpuInstanceEvents();
@@ -188,7 +211,7 @@ private:
     gpu_ref_ptr<WGPUAdapter, wgpuAdapterAddRef, wgpuAdapterRelease> m_pAdapter {};
     gpu_ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease> m_pDevice {};
     gpu_ref_ptr<WGPUQueue, wgpuQueueAddRef, wgpuQueueRelease> m_pQueue {};
-    WGPUSupportedLimits m_limits {};
+    WGPULimits m_limits {};
     std::unordered_map<size_t, GpuShaderModulePtr> m_cachedShaderModules {};
 };
 

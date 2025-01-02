@@ -23,23 +23,12 @@ export class GpuMatrix {
     friend GpuMatrix operator*(float v, const GpuMatrix& m);
 
 public:
-    static bool IsSupported(size_t row, size_t column)
-    {
-        const auto& limits = GpuInstance::GetInstance().GetAdapter()->GetLimits().limits;
-        auto requiredBufferSize = row * column * sizeof(float);
-        return requiredBufferSize <= limits.maxStorageBufferBindingSize && requiredBufferSize < limits.maxBufferSize;
-    }
-
     GpuMatrix() = default;
 
     GpuMatrix(size_t row, size_t column)
         : m_row { row }
         , m_column { column }
     {
-        if (!IsSupported(row, column)) {
-            throw std::runtime_error { "dimension is not supported." };
-        }
-
         m_paddingRow = (m_row + 3) & ~3;
         m_paddingColumn = (m_column + 3) & ~3;
         auto adapter = GpuInstance::GetInstance().GetAdapter();
