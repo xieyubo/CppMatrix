@@ -55,11 +55,8 @@ public:
         auto hidden_errors = m_who.Transpose() * output_errors;
 
         // update the weights for the links between the hidden and output layers
-        auto a = output_errors.ElementProduct(final_outputs);
-        auto b = a.ElementProduct(1.0f - final_outputs);
-        auto c = hidden_outputs.Transpose();
-        auto d = b * c;
-        m_who += m_lr * d;
+        m_who += m_lr * (output_errors.ElementProduct(final_outputs).ElementProduct(1.0f - final_outputs) * hidden_outputs.Transpose());
+
         // update the weights for the links between the input and hidden layers
         m_wih += m_lr * ((hidden_errors.ElementProduct(hidden_outputs).ElementProduct(1.0f - hidden_outputs) * inputs.Transpose()));
     }
