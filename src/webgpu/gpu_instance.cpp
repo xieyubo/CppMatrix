@@ -53,12 +53,7 @@ private:
         // Request device.
         auto devicePromise = std::promise<DevicePtr>();
         auto deviceFuture = devicePromise.get_future();
-        WGPURequiredLimits requiredLimis = WGPU_REQUIRED_LIMITS_INIT;
-        // Currently we only support offset aligment is 16.
-        requiredLimis.limits.minStorageBufferOffsetAlignment = 16;
-        WGPUDeviceDescriptor descriptor = WGPU_DEVICE_DESCRIPTOR_INIT;
-        descriptor.requiredLimits = &requiredLimis;
-        wgpuAdapterRequestDevice(pAdapter.get(), &descriptor, [](WGPURequestDeviceStatus status, WGPUDevice device, WGPUStringView message, void* pUserData) { 
+        wgpuAdapterRequestDevice(pAdapter.get(), nullptr, [](WGPURequestDeviceStatus status, WGPUDevice device, WGPUStringView message, void* pUserData) { 
             assert(status == WGPURequestDeviceStatus_Success);
             ((std::promise<DevicePtr>*)pUserData)->set_value(DevicePtr { device }); }, &devicePromise);
         auto pDevice = Wait(deviceFuture);

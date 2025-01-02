@@ -114,7 +114,6 @@ private:
             bindGroupEntries[i] = WGPUBindGroupEntry {
                 .binding = i,
                 .buffer = parameters[i].buffer,
-                .offset = parameters[i].offset,
                 .size = parameters[i].size,
             };
         }

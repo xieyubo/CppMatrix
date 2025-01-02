@@ -13,7 +13,6 @@ export void ProcessGpuInstanceEvents();
 export struct Parameter {
     WGPUBuffer buffer {};
     size_t size {};
-    size_t offset {};
 };
 
 export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle), void (*GPURelease)(TGPUNativeHandle)>
