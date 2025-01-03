@@ -2,18 +2,16 @@
 
 import cpp_matrix;
 
-using namespace cpp_matrix;
-
 class CpuMatrixTest : public testing::Test {
 public:
     CpuMatrixTest()
     {
-        Matrix::SetDefaultMatrixType(MatrixType::CpuMatrix);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::CpuMatrix);
     }
 
     ~CpuMatrixTest()
     {
-        Matrix::SetDefaultMatrixType(MatrixType::Auto);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
     }
 };
 

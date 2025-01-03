@@ -8,8 +8,6 @@
 import neural_network;
 import cpp_matrix;
 
-using namespace cpp_matrix;
-
 struct Options {
     int epochs { 1 };
     std::string training_file;
@@ -77,11 +75,11 @@ int main(int argc, char* argv[])
 
     auto options = parse_options(argc - 1, argv + 1);
     if (options.useGpuMatrix && options.useCpuMatrix) {
-        Matrix::SetDefaultMatrixType(MatrixType::Auto);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
     } else if (options.useCpuMatrix) {
-        Matrix::SetDefaultMatrixType(MatrixType::CpuMatrix);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::CpuMatrix);
     } else if (options.useGpuMatrix) {
-        Matrix::SetDefaultMatrixType(MatrixType::GpuMatrix);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::GpuMatrix);
     }
 
     const size_t kInputNodes = 784;

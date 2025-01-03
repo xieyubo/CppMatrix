@@ -6,27 +6,22 @@ module;
 #include <vector>
 
 export module cpp_matrix:matrix;
-import :gpu_matrix;
 import :cpu_matrix;
+import :gpu_matrix;
+import :matrix_type;
+import :std_patch;
 
 namespace cpp_matrix {
 
-export enum class MatrixType {
-    Auto,
-    GpuMatrix,
-    CpuMatrix,
-};
+export template <typename T>
+concept MatrixElementType = std::is_same_v<T, std::float32_t>;
 
-export class Matrix {
+export template <MatrixElementType T>
+class Matrix {
     friend Matrix operator-(float v, const Matrix& m);
     friend Matrix operator*(float v, const Matrix& m);
 
 public:
-    static void SetDefaultMatrixType(MatrixType type)
-    {
-        s_defaultMatrixType = type;
-    }
-
     /// @brief Create a matrix with random value (value will be between 0 and 1).
     static Matrix Random(size_t row, size_t column)
     {
@@ -201,13 +196,11 @@ public:
     }
 
 private:
-    static MatrixType s_defaultMatrixType;
-
     template <typename... Args>
     static std::variant<CpuMatrix, GpuMatrix> CreateMatrix(MatrixType type, Args&&... args)
     {
         if (type == MatrixType::Auto) {
-            type = s_defaultMatrixType;
+            type = GetDefaultMatrixType();
         }
 
         if (type == MatrixType::Auto) {
@@ -235,7 +228,7 @@ private:
     std::variant<CpuMatrix, GpuMatrix> m_matrix {};
 };
 
-export Matrix operator-(float v, const Matrix& m)
+export Matrix<std::float32_t> operator-(std::float32_t v, const Matrix<std::float32_t>& m)
 {
     if (auto p = std::get_if<CpuMatrix>(&m.m_matrix)) {
         return operator-(v, *p);
@@ -244,7 +237,7 @@ export Matrix operator-(float v, const Matrix& m)
     }
 }
 
-export Matrix operator*(float v, const Matrix& m)
+export Matrix<std::float32_t> operator*(std::float32_t v, const Matrix<std::float32_t>& m)
 {
     if (auto p = std::get_if<CpuMatrix>(&m.m_matrix)) {
         return operator*(v, *p);
@@ -252,7 +245,5 @@ export Matrix operator*(float v, const Matrix& m)
         return operator*(v, std::get<GpuMatrix>(m.m_matrix));
     }
 }
-
-MatrixType Matrix::s_defaultMatrixType { MatrixType::Auto };
 
 }

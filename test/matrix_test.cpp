@@ -3,13 +3,13 @@
 
 import cpp_matrix;
 
-using namespace cpp_matrix;
+using Matrix = cpp_matrix::Matrix<float>;
 
 class MatrixTest : public testing::Test {
 public:
     MatrixTest()
     {
-        Matrix::SetDefaultMatrixType(MatrixType::Auto);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
     }
 };
 

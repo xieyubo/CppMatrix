@@ -2,18 +2,16 @@
 
 import cpp_matrix;
 
-using namespace cpp_matrix;
-
 class GpuMatrixTest : public testing::Test {
 public:
     GpuMatrixTest()
     {
-        Matrix::SetDefaultMatrixType(MatrixType::GpuMatrix);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::GpuMatrix);
     }
 
     ~GpuMatrixTest()
     {
-        Matrix::SetDefaultMatrixType(MatrixType::Auto);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
     }
 };
 

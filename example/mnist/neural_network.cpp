@@ -8,7 +8,7 @@ module;
 
 import cpp_matrix;
 
-using namespace cpp_matrix;
+using Matrix = cpp_matrix::Matrix<float>;
 
 export module neural_network;
 
@@ -55,10 +55,14 @@ public:
         auto hidden_errors = m_who.Transpose() * output_errors;
 
         // update the weights for the links between the hidden and output layers
-        m_who += m_lr * (output_errors.ElementProduct(final_outputs).ElementProduct(1.0f - final_outputs) * hidden_outputs.Transpose());
+        m_who += m_lr
+            * (output_errors.ElementProduct(final_outputs).ElementProduct(1.0f - final_outputs)
+                * hidden_outputs.Transpose());
 
         // update the weights for the links between the input and hidden layers
-        m_wih += m_lr * ((hidden_errors.ElementProduct(hidden_outputs).ElementProduct(1.0f - hidden_outputs) * inputs.Transpose()));
+        m_wih += m_lr
+            * ((hidden_errors.ElementProduct(hidden_outputs).ElementProduct(1.0f - hidden_outputs)
+                * inputs.Transpose()));
     }
 
     std::vector<float> Query(std::vector<float> inputs_list)
