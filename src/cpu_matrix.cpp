@@ -4,18 +4,18 @@ module;
 #include <stdexcept>
 #include <vector>
 
-export module cpp_matrix:host_matrix;
+export module cpp_matrix:cpu_matrix;
 
 namespace cpp_matrix {
 
-export class HostMatrix {
-    friend HostMatrix operator-(float v, const HostMatrix& m);
-    friend HostMatrix operator*(float v, const HostMatrix& m);
+export class CpuMatrix {
+    friend CpuMatrix operator-(float v, const CpuMatrix& m);
+    friend CpuMatrix operator*(float v, const CpuMatrix& m);
 
 public:
-    HostMatrix() = default;
+    CpuMatrix() = default;
 
-    HostMatrix(size_t row, size_t column)
+    CpuMatrix(size_t row, size_t column)
         : m_row { row }
         , m_column { column }
         , m_data(row * column)
@@ -32,7 +32,7 @@ public:
         return m_column;
     }
 
-    HostMatrix& operator=(std::vector<float> data)
+    CpuMatrix& operator=(std::vector<float> data)
     {
         m_row = 1;
         m_column = data.size();
@@ -54,13 +54,13 @@ public:
         return m_data;
     }
 
-    HostMatrix operator+(const HostMatrix& other) const
+    CpuMatrix operator+(const CpuMatrix& other) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        HostMatrix res { m_row, m_column };
+        CpuMatrix res { m_row, m_column };
         auto* pR = res.m_data.data();
         auto* p1 = m_data.data();
         auto* p2 = other.m_data.data();
@@ -70,7 +70,7 @@ public:
         return res;
     }
 
-    HostMatrix& operator+=(const HostMatrix& other)
+    CpuMatrix& operator+=(const CpuMatrix& other)
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
@@ -84,22 +84,22 @@ public:
         return *this;
     }
 
-    HostMatrix operator+(float v) const
+    CpuMatrix operator+(float v) const
     {
-        HostMatrix res { m_row, m_column };
+        CpuMatrix res { m_row, m_column };
         for (auto i = 0u; i < m_row * m_column; ++i) {
             res.m_data[i] = m_data[i] + v;
         }
         return res;
     }
 
-    HostMatrix operator-(const HostMatrix& other) const
+    CpuMatrix operator-(const CpuMatrix& other) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        HostMatrix res { m_row, m_column };
+        CpuMatrix res { m_row, m_column };
         auto* pR = res.m_data.data();
         auto* p1 = m_data.data();
         auto* p2 = other.m_data.data();
@@ -109,9 +109,9 @@ public:
         return res;
     }
 
-    HostMatrix operator*(const HostMatrix& other) const
+    CpuMatrix operator*(const CpuMatrix& other) const
     {
-        HostMatrix res { m_row, other.m_column };
+        CpuMatrix res { m_row, other.m_column };
         for (auto y = 0; y < m_row; ++y) {
             for (auto x = 0; x < other.m_column; ++x) {
                 auto sum = .0f;
@@ -124,18 +124,18 @@ public:
         return res;
     }
 
-    HostMatrix Sigmoid() const
+    CpuMatrix Sigmoid() const
     {
-        HostMatrix res { m_row, m_column };
+        CpuMatrix res { m_row, m_column };
         for (auto i = 0u; i < m_row * m_column; ++i) {
             res.m_data[i] = 1.f / (1.f + std::exp(-m_data[i]));
         }
         return res;
     }
 
-    HostMatrix Transpose() const
+    CpuMatrix Transpose() const
     {
-        HostMatrix res { m_column, m_row };
+        CpuMatrix res { m_column, m_row };
         for (int c = 0u; c < m_column; ++c) {
             for (int r = 0u; r < m_row; ++r) {
                 res.m_data[c * m_row + r] = m_data[r * m_column + c];
@@ -144,13 +144,13 @@ public:
         return res;
     }
 
-    HostMatrix ElementProduct(const HostMatrix& other)
+    CpuMatrix ElementProduct(const CpuMatrix& other)
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        HostMatrix res { m_row, m_column };
+        CpuMatrix res { m_row, m_column };
         auto* pR = res.m_data.data();
         auto* p1 = m_data.data();
         auto* p2 = other.m_data.data();
@@ -180,9 +180,9 @@ private:
     std::vector<float> m_data;
 };
 
-export HostMatrix operator-(float v, const HostMatrix& m)
+export CpuMatrix operator-(float v, const CpuMatrix& m)
 {
-    HostMatrix res { m.m_row, m.m_column };
+    CpuMatrix res { m.m_row, m.m_column };
     auto* pR = res.m_data.data();
     auto* p1 = m.m_data.data();
     for (auto i = 0u; i < m.m_row * m.m_column; ++i) {
@@ -191,9 +191,9 @@ export HostMatrix operator-(float v, const HostMatrix& m)
     return res;
 }
 
-export HostMatrix operator*(float v, const HostMatrix& m)
+export CpuMatrix operator*(float v, const CpuMatrix& m)
 {
-    HostMatrix res { m.m_row, m.m_column };
+    CpuMatrix res { m.m_row, m.m_column };
     auto* pR = res.m_data.data();
     auto* p1 = m.m_data.data();
     for (auto i = 0u; i < m.m_row * m.m_column; ++i) {

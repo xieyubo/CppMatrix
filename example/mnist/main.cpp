@@ -14,7 +14,7 @@ struct Options {
     int epochs { 1 };
     std::string training_file;
     std::string test_file;
-    bool useHostMatrix {};
+    bool useCpuMatrix {};
     bool useGpuMatrix {};
 };
 
@@ -22,8 +22,8 @@ static Options parse_options(int argc, char* argv[])
 {
     auto options = Options {};
     for (int i = 0; i < argc; ++i) {
-        if (!strcmp(argv[i], "--use-host")) {
-            options.useHostMatrix = true;
+        if (!strcmp(argv[i], "--use-cpu")) {
+            options.useCpuMatrix = true;
         } else if (!strcmp(argv[i], "--use-gpu")) {
             options.useGpuMatrix = true;
         } else if (!strcmp(argv[i], "--epochs")) {
@@ -65,7 +65,7 @@ static std::vector<std::pair<int, std::vector<float>>> read_data_from_file(std::
 
 static void print_help(const char* appname)
 {
-    printf("%s [--use-host|--use-gpu] [--epochs x] training_file test_file\n", appname);
+    printf("%s [--use-cpu|--use-gpu] [--epochs x] training_file test_file\n", appname);
 }
 
 int main(int argc, char* argv[])
@@ -76,10 +76,10 @@ int main(int argc, char* argv[])
     }
 
     auto options = parse_options(argc - 1, argv + 1);
-    if (options.useGpuMatrix && options.useHostMatrix) {
+    if (options.useGpuMatrix && options.useCpuMatrix) {
         Matrix::SetDefaultMatrixType(MatrixType::Auto);
-    } else if (options.useHostMatrix) {
-        Matrix::SetDefaultMatrixType(MatrixType::HostMatrix);
+    } else if (options.useCpuMatrix) {
+        Matrix::SetDefaultMatrixType(MatrixType::CpuMatrix);
     } else if (options.useGpuMatrix) {
         Matrix::SetDefaultMatrixType(MatrixType::GpuMatrix);
     }

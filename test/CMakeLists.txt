@@ -1,9 +1,9 @@
-add_executable(gpu_test
+add_executable(cpp_matrix_test
+    cpu_matrix_test.cpp
     gpu_matrix_test.cpp
-    host_matrix_test.cpp
 )
-target_link_libraries(gpu_test
+target_link_libraries(cpp_matrix_test
     cpp_matrix
     GTest::gtest_main
 )
-gtest_discover_tests(gpu_test)
+gtest_discover_tests(cpp_matrix_test)
