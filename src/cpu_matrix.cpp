@@ -5,12 +5,17 @@ module;
 #include <vector>
 
 export module cpp_matrix:cpu_matrix;
+import :matrix_type;
 
 namespace cpp_matrix {
 
-export class CpuMatrix {
-    friend CpuMatrix operator-(float v, const CpuMatrix& m);
-    friend CpuMatrix operator*(float v, const CpuMatrix& m);
+export template <MatrixElementType T>
+class CpuMatrix {
+    template <MatrixElementType R>
+    friend CpuMatrix<R> operator-(R v, const CpuMatrix<R>& m);
+
+    template <MatrixElementType R>
+    friend CpuMatrix<R> operator*(R v, const CpuMatrix<R>& m);
 
 public:
     CpuMatrix() = default;
@@ -32,7 +37,7 @@ public:
         return m_column;
     }
 
-    CpuMatrix& operator=(std::vector<float> data)
+    CpuMatrix& operator=(std::vector<T> data)
     {
         m_row = 1;
         m_column = data.size();
@@ -40,7 +45,7 @@ public:
         return *this;
     }
 
-    void Write(std::vector<float> data)
+    void Write(std::vector<T> data)
     {
         if (m_row * m_column != data.size()) {
             throw std::runtime_error { "Elements size is not the same." };
@@ -49,7 +54,7 @@ public:
         m_data = std::move(data);
     }
 
-    std::vector<float> Read() const
+    std::vector<T> Read() const
     {
         return m_data;
     }
@@ -84,7 +89,7 @@ public:
         return *this;
     }
 
-    CpuMatrix operator+(float v) const
+    CpuMatrix operator+(T v) const
     {
         CpuMatrix res { m_row, m_column };
         for (auto i = 0u; i < m_row * m_column; ++i) {
@@ -160,7 +165,7 @@ public:
         return res;
     }
 
-    float operator[](size_t row, size_t column) const
+    T operator[](size_t row, size_t column) const
     {
         if (row >= m_row || column >= m_column) {
             throw std::runtime_error { "Out of range" };
@@ -171,18 +176,19 @@ public:
 
     size_t BufferSize() const
     {
-        return sizeof(float) * m_row * m_column;
+        return sizeof(T) * m_row * m_column;
     }
 
 private:
     size_t m_row {};
     size_t m_column {};
-    std::vector<float> m_data;
+    std::vector<T> m_data;
 };
 
-export CpuMatrix operator-(float v, const CpuMatrix& m)
+export template <MatrixElementType T>
+CpuMatrix<T> operator-(T v, const CpuMatrix<T>& m)
 {
-    CpuMatrix res { m.m_row, m.m_column };
+    CpuMatrix<T> res { m.m_row, m.m_column };
     auto* pR = res.m_data.data();
     auto* p1 = m.m_data.data();
     for (auto i = 0u; i < m.m_row * m.m_column; ++i) {
@@ -191,9 +197,10 @@ export CpuMatrix operator-(float v, const CpuMatrix& m)
     return res;
 }
 
-export CpuMatrix operator*(float v, const CpuMatrix& m)
+export template <MatrixElementType T>
+CpuMatrix<T> operator*(T v, const CpuMatrix<T>& m)
 {
-    CpuMatrix res { m.m_row, m.m_column };
+    CpuMatrix<T> res { m.m_row, m.m_column };
     auto* pR = res.m_data.data();
     auto* p1 = m.m_data.data();
     for (auto i = 0u; i < m.m_row * m.m_column; ++i) {

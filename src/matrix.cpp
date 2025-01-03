@@ -9,12 +9,8 @@ export module cpp_matrix:matrix;
 import :cpu_matrix;
 import :gpu_matrix;
 import :matrix_type;
-import :std_patch;
 
 namespace cpp_matrix {
-
-export template <typename T>
-concept MatrixElementType = std::is_same_v<T, std::float32_t>;
 
 export template <MatrixElementType T>
 class Matrix {
@@ -53,7 +49,7 @@ public:
     template <size_t N>
     void Write(std::span<float, N> data)
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Write(std::vector<float> { data.begin(), data.end() });
         } else {
             return std::get<GpuMatrix>(m_matrix).Write(data);
@@ -62,7 +58,7 @@ public:
 
     std::vector<float> Read() const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Read();
         } else {
             return std::get<GpuMatrix>(m_matrix).Read();
@@ -71,8 +67,8 @@ public:
 
     Matrix operator+(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
-            return p->operator+(std::get<CpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->operator+(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             return std::get<GpuMatrix>(m_matrix).operator+(std::get<GpuMatrix>(other.m_matrix));
         }
@@ -80,8 +76,8 @@ public:
 
     Matrix& operator+=(const Matrix& other)
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
-            p->operator+=(std::get<CpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            p->operator+=(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             std::get<GpuMatrix>(m_matrix).operator+=(std::get<GpuMatrix>(other.m_matrix));
         }
@@ -90,8 +86,8 @@ public:
 
     Matrix operator-(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
-            return p->operator-(std::get<CpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->operator-(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             return std::get<GpuMatrix>(m_matrix).operator-(std::get<GpuMatrix>(other.m_matrix));
         }
@@ -99,7 +95,7 @@ public:
 
     Matrix operator+(float v) const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->operator+(v);
         } else {
             return std::get<GpuMatrix>(m_matrix).operator+(v);
@@ -113,8 +109,8 @@ public:
 
     Matrix operator*(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
-            return p->operator*(std::get<CpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->operator*(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             return std::get<GpuMatrix>(m_matrix).operator*(std::get<GpuMatrix>(other.m_matrix));
         }
@@ -122,7 +118,7 @@ public:
 
     size_t Row() const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Row();
         } else {
             return std::get<GpuMatrix>(m_matrix).Row();
@@ -131,7 +127,7 @@ public:
 
     size_t Column() const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Column();
         } else {
             return std::get<GpuMatrix>(m_matrix).Column();
@@ -140,7 +136,7 @@ public:
 
     Matrix& operator=(std::vector<float> data)
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             p->operator=(std::move(data));
         } else {
             std::get<GpuMatrix>(m_matrix).operator=(std::move(data));
@@ -161,7 +157,7 @@ public:
 
     Matrix Transpose() const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Transpose();
         } else {
             return std::get<GpuMatrix>(m_matrix).Transpose();
@@ -170,7 +166,7 @@ public:
 
     Matrix Sigmoid() const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Sigmoid();
         } else {
             return std::get<GpuMatrix>(m_matrix).Sigmoid();
@@ -179,8 +175,8 @@ public:
 
     Matrix ElementProduct(const Matrix& other)
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
-            return p->ElementProduct(std::get<CpuMatrix>(other.m_matrix));
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->ElementProduct(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             return std::get<GpuMatrix>(m_matrix).ElementProduct(std::get<GpuMatrix>(other.m_matrix));
         }
@@ -188,7 +184,7 @@ public:
 
     float operator[](size_t row, size_t column) const
     {
-        if (auto p = std::get_if<CpuMatrix>(&m_matrix)) {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->operator[](row, column);
         } else {
             return std::get<GpuMatrix>(m_matrix).operator[](row, column);
@@ -197,7 +193,7 @@ public:
 
 private:
     template <typename... Args>
-    static std::variant<CpuMatrix, GpuMatrix> CreateMatrix(MatrixType type, Args&&... args)
+    static std::variant<CpuMatrix<T>, GpuMatrix> CreateMatrix(MatrixType type, Args&&... args)
     {
         if (type == MatrixType::Auto) {
             type = GetDefaultMatrixType();
@@ -211,11 +207,11 @@ private:
         if (type == MatrixType::GpuMatrix) {
             return GpuMatrix { std::forward<Args>(args)... };
         } else {
-            return CpuMatrix { std::forward<Args>(args)... };
+            return CpuMatrix<T> { std::forward<Args>(args)... };
         }
     }
 
-    Matrix(CpuMatrix m)
+    Matrix(CpuMatrix<T> m)
         : m_matrix { std::move(m) }
     {
     }
@@ -225,12 +221,12 @@ private:
     {
     }
 
-    std::variant<CpuMatrix, GpuMatrix> m_matrix {};
+    std::variant<CpuMatrix<T>, GpuMatrix> m_matrix {};
 };
 
 export Matrix<std::float32_t> operator-(std::float32_t v, const Matrix<std::float32_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix>(&m.m_matrix)) {
+    if (auto p = std::get_if<CpuMatrix<std::float32_t>>(&m.m_matrix)) {
         return operator-(v, *p);
     } else {
         return operator-(v, std::get<GpuMatrix>(m.m_matrix));
@@ -239,7 +235,7 @@ export Matrix<std::float32_t> operator-(std::float32_t v, const Matrix<std::floa
 
 export Matrix<std::float32_t> operator*(std::float32_t v, const Matrix<std::float32_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix>(&m.m_matrix)) {
+    if (auto p = std::get_if<CpuMatrix<std::float32_t>>(&m.m_matrix)) {
         return operator*(v, *p);
     } else {
         return operator*(v, std::get<GpuMatrix>(m.m_matrix));
