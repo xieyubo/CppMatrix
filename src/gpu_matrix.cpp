@@ -15,12 +15,17 @@ import webgpu;
 using namespace webgpu;
 
 export module cpp_matrix:gpu_matrix;
+import :matrix_type;
 
 namespace cpp_matrix {
 
-export class GpuMatrix {
-    friend GpuMatrix operator-(float v, const GpuMatrix& m);
-    friend GpuMatrix operator*(float v, const GpuMatrix& m);
+export template <MatrixElementType T>
+class GpuMatrix {
+    template <MatrixElementType R>
+    friend GpuMatrix<R> operator-(R v, const GpuMatrix<R>& m);
+
+    template <MatrixElementType R>
+    friend GpuMatrix<R> operator*(R v, const GpuMatrix<R>& m);
 
 public:
     GpuMatrix() = default;
@@ -35,8 +40,8 @@ public:
         m_pBuffer = adapter->CreateBuffer(m_paddingRow, m_paddingColumn);
 
         // Zero out.
-        std::vector<float> tmp(m_paddingRow * m_paddingColumn);
-        wgpuQueueWriteBuffer(adapter->GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(float) * tmp.size());
+        std::vector<T> tmp(m_paddingRow * m_paddingColumn);
+        wgpuQueueWriteBuffer(adapter->GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(T) * tmp.size());
     }
 
     size_t Row() const
@@ -56,10 +61,10 @@ public:
 
     size_t BufferSize() const
     {
-        return sizeof(float) * m_paddingRow * m_paddingColumn;
+        return sizeof(T) * m_paddingRow * m_paddingColumn;
     }
 
-    GpuMatrix& operator=(std::vector<float> data)
+    GpuMatrix& operator=(std::vector<T> data)
     {
         m_row = 1;
         m_column = data.size();
@@ -67,13 +72,13 @@ public:
         m_paddingColumn = (m_column + 3) & ~3;
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         m_pBuffer = adapter->CreateBuffer(m_paddingRow, m_paddingColumn);
-        Write(std::span<float> { data });
+        Write(std::span<T> { data });
         return *this;
     }
 
-    void Write(std::span<float> data)
+    void Write(std::span<T> data)
     {
-        std::vector<float> tmp(m_paddingRow * m_paddingColumn);
+        std::vector<T> tmp(m_paddingRow * m_paddingColumn);
         for (auto row = 0; row < m_row; ++row) {
             for (auto column = 0; column < m_column; ++column) {
                 auto i = IndexInMat4x4ArrayMemory(row, column);
@@ -81,7 +86,7 @@ public:
             }
         }
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        wgpuQueueWriteBuffer(adapter->GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(float) * tmp.size());
+        wgpuQueueWriteBuffer(adapter->GetQueue(), m_pBuffer.get(), 0, tmp.data(), sizeof(T) * tmp.size());
     }
 
     operator bool() const
@@ -126,7 +131,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
-                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
+                { intermediaBuffer.get(), sizeof(T) * N * 4 * 4 },
             };
             webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
 
@@ -142,7 +147,7 @@ fn main() {{
 )",
                 N, m_paddingColumn >> 2);
             parameters = std::vector<Parameter> {
-                { intermediaBuffer.get(), sizeof(float) * N * 4 * 4 },
+                { intermediaBuffer.get(), sizeof(T) * N * 4 * 4 },
                 { output.GetBuffer(), output.BufferSize() },
             };
             webgpu::Run(code, { parameters.begin(), parameters.end() }, 1, 1);
@@ -151,8 +156,7 @@ fn main() {{
         return output;
     }
 
-    GpuMatrix
-    operator+(const GpuMatrix& other) const
+    GpuMatrix operator+(const GpuMatrix& other) const
     {
 
         if (m_row != other.m_row || m_column != other.m_column) {
@@ -194,11 +198,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return *this;
     }
 
-    GpuMatrix operator+(float v) const
+    GpuMatrix operator+(T v) const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto vbuffer = adapter->CreateBuffer(1);
-        wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+        wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(T));
 
         auto output = GpuMatrix { m_row, m_column };
 
@@ -219,7 +223,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             N);
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
-            { vbuffer.get(), sizeof(float) },
+            { vbuffer.get(), sizeof(T) },
             { output.GetBuffer(), output.BufferSize() },
         };
         webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
@@ -349,10 +353,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
-    std::vector<float> Read() const
+    std::vector<T> Read() const
     {
-        std::vector<float> out(m_row * m_column);
-        MapBuffer([this, &out](const float* data) {
+        std::vector<T> out(m_row * m_column);
+        MapBuffer([this, &out](const T* data) {
             for (auto y = 0u; y < m_row; ++y) {
                 for (auto x = 0u; x < m_column; ++x) {
                     auto i = IndexInMat4x4ArrayMemory(y, x);
@@ -363,14 +367,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return out;
     }
 
-    float operator[](size_t row, size_t column) const
+    T operator[](size_t row, size_t column) const
     {
         if (row >= m_row || column >= m_column) {
             throw std::runtime_error { "Out of range" };
         }
 
-        float ret {};
-        MapBuffer([this, row, column, &ret](const float* data) {
+        T ret {};
+        MapBuffer([this, row, column, &ret](const T* data) {
             auto i = IndexInMat4x4ArrayMemory(row, column);
             ret = data[i];
         });
@@ -383,7 +387,7 @@ private:
         return (((row >> 2) * (m_paddingColumn >> 2) + (column >> 2)) << 4) + (((row & 0x3) << 2) + (column & 0x3));
     }
 
-    void MapBuffer(std::function<void(const float*)> callback) const
+    void MapBuffer(std::function<void(const T*)> callback) const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
 
@@ -394,7 +398,8 @@ private:
             .size = bufferSize,
         };
 
-        auto pReadbackBuffer = gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(adapter->GetDevice(), &readbackBufferDescriptor) };
+        auto pReadbackBuffer = gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(
+            adapter->GetDevice(), &readbackBufferDescriptor) };
 
         auto commandEncoder = wgpuDeviceCreateCommandEncoder(adapter->GetDevice(), nullptr);
         wgpuCommandEncoderCopyBufferToBuffer(commandEncoder, m_pBuffer.get(), 0, pReadbackBuffer.get(), 0, bufferSize);
@@ -403,25 +408,35 @@ private:
         auto submitPromise = std::promise<WGPUQueueWorkDoneStatus>();
         auto submitFuture = submitPromise.get_future();
         wgpuQueueSubmit(adapter->GetQueue(), 1, &commandBuffer);
-        wgpuQueueOnSubmittedWorkDone(adapter->GetQueue(), [](WGPUQueueWorkDoneStatus status, void* callbackData) { ((std::promise<WGPUQueueWorkDoneStatus>*)callbackData)->set_value(status); }, &submitPromise);
+        wgpuQueueOnSubmittedWorkDone(
+            adapter->GetQueue(),
+            [](WGPUQueueWorkDoneStatus status, void* callbackData) {
+                ((std::promise<WGPUQueueWorkDoneStatus>*)callbackData)->set_value(status);
+            },
+            &submitPromise);
         if (auto status = Wait(submitFuture); status != WGPUQueueWorkDoneStatus_Success) {
             throw std::runtime_error { "wgpuQueueOnSubmittedWorkDone failed." };
         }
 
         auto mapPromise = std::promise<WGPUBufferMapAsyncStatus>();
         auto mapFuture = mapPromise.get_future();
-        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize, [](WGPUBufferMapAsyncStatus status, void* captureData) { ((std::promise<WGPUBufferMapAsyncStatus>*)captureData)->set_value(status); }, &mapPromise);
+        wgpuBufferMapAsync(
+            pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize,
+            [](WGPUBufferMapAsyncStatus status, void* captureData) {
+                ((std::promise<WGPUBufferMapAsyncStatus>*)captureData)->set_value(status);
+            },
+            &mapPromise);
         if (auto status = Wait(mapFuture); status != WGPUBufferMapAsyncStatus_Success) {
             throw std::runtime_error { "wgpuBufferMapAsync failed." };
         }
 
-        const auto* pMappedData = (float*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
+        const auto* pMappedData = (T*)wgpuBufferGetConstMappedRange(pReadbackBuffer.get(), 0, bufferSize);
         callback(pMappedData);
         wgpuBufferUnmap(pReadbackBuffer.get());
     }
 
-    template <typename T>
-    T Wait(std::future<T>& future) const
+    template <typename R>
+    R Wait(std::future<R>& future) const
     {
         while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
             ProcessGpuInstanceEvents();
@@ -436,13 +451,14 @@ private:
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };
 
-export GpuMatrix operator-(float v, const GpuMatrix& m)
+export template <MatrixElementType T>
+GpuMatrix<T> operator-(T v, const GpuMatrix<T>& m)
 {
     auto adapter = GpuInstance::GetInstance().GetAdapter();
     auto vbuffer = adapter->CreateBuffer(1);
-    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(T));
 
-    auto output = GpuMatrix { m.m_row, m.m_column };
+    auto output = GpuMatrix<T> { m.m_row, m.m_column };
 
     // Caculate mat4x4
     size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
@@ -460,7 +476,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 )",
         N);
     auto parameters = std::vector<Parameter> {
-        { vbuffer.get(), sizeof(float) },
+        { vbuffer.get(), sizeof(T) },
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
@@ -468,13 +484,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     return output;
 }
 
-export GpuMatrix operator*(float v, const GpuMatrix& m)
+export template <MatrixElementType T>
+GpuMatrix<T> operator*(T v, const GpuMatrix<T>& m)
 {
     auto adapter = GpuInstance::GetInstance().GetAdapter();
     auto vbuffer = adapter->CreateBuffer(1);
-    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(float));
+    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(T));
 
-    auto output = GpuMatrix { m.m_row, m.m_column };
+    auto output = GpuMatrix<T> { m.m_row, m.m_column };
 
     // Caculate mat4x4
     size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
@@ -492,7 +509,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 )",
         N);
     auto parameters = std::vector<Parameter> {
-        { vbuffer.get(), sizeof(float) },
+        { vbuffer.get(), sizeof(T) },
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
