@@ -31,34 +31,43 @@ public:
             throw std::runtime_error { "wgpuAdapterGetLimits failed." };
         }
         m_limits = supportedLimits.limits;
+        m_isFloat16Supported = wgpuDeviceHasFeature(m_pDevice.get(), WGPUFeatureName_ShaderF16);
     }
 
-    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t elementSize)
+    template <typename T>
+    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t elementSize);
+
+    template <>
+    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer<_Float16>(size_t elementSize)
     {
-        auto requiredSize = elementSize * sizeof(float);
-        if (requiredSize > m_limits.maxStorageBufferBindingSize || requiredSize > m_limits.maxBufferSize) {
-            throw std::runtime_error { std::format("Buffer size is too big (required size is {}, limits is "
-                                                   "maxStorageBufferBindingSize: {}, maxBufferSize: {}).",
-                requiredSize, m_limits.maxStorageBufferBindingSize, m_limits.maxBufferSize) };
+        if (!m_isFloat16Supported) {
+            throw std::runtime_error { "float16 is not supported." };
         }
 
-        auto bufferDesc = WGPUBufferDescriptor {
-            .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-            .size = requiredSize,
-        };
-
-        return gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(
-            m_pDevice.get(), &bufferDesc) };
+        return DoCreateBuffer(sizeof(_Float16) * elementSize);
     }
 
+    template <>
+    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer<float>(size_t elementSize)
+    {
+        return DoCreateBuffer(sizeof(float) * elementSize);
+    }
+
+    template <typename T>
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> CreateBuffer(size_t row, size_t column)
     {
-        return CreateBuffer(row * column);
+        return CreateBuffer<T>(row * column);
     }
 
-    WGPUDevice GetDevice() const { return m_pDevice.get(); }
+    WGPUDevice GetDevice() const
+    {
+        return m_pDevice.get();
+    }
 
-    WGPUQueue GetQueue() const { return m_pQueue.get(); }
+    WGPUQueue GetQueue() const
+    {
+        return m_pQueue.get();
+    }
 
     void Execute(std::string_view shaderScript, std::span<Parameter> parameters, size_t N, size_t batchSize)
     {
@@ -200,7 +209,27 @@ private:
         Wait(submitFuture);
     }
 
-    template <typename T> T Wait(std::future<T>& future)
+    gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> DoCreateBuffer(size_t byteSize)
+    {
+        // buffer need 4 bytes align.
+        byteSize = (byteSize + 3) & ~3;
+        if (byteSize > m_limits.maxStorageBufferBindingSize || byteSize > m_limits.maxBufferSize) {
+            throw std::runtime_error { std::format("Buffer size is too big (required size is {}, limits is "
+                                                   "maxStorageBufferBindingSize: {}, maxBufferSize: {}).",
+                byteSize, m_limits.maxStorageBufferBindingSize, m_limits.maxBufferSize) };
+        }
+
+        auto bufferDesc = WGPUBufferDescriptor {
+            .usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
+            .size = byteSize,
+        };
+
+        return gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> { wgpuDeviceCreateBuffer(
+            m_pDevice.get(), &bufferDesc) };
+    }
+
+    template <typename T>
+    T Wait(std::future<T>& future)
     {
         while (future.wait_for(std::chrono::milliseconds {}) != std::future_status::ready) {
             ProcessGpuInstanceEvents();
@@ -212,6 +241,7 @@ private:
     gpu_ref_ptr<WGPUDevice, wgpuDeviceAddRef, wgpuDeviceRelease> m_pDevice {};
     gpu_ref_ptr<WGPUQueue, wgpuQueueAddRef, wgpuQueueRelease> m_pQueue {};
     WGPULimits m_limits {};
+    bool m_isFloat16Supported {};
     std::unordered_map<size_t, GpuShaderModulePtr> m_cachedShaderModules {};
 };
 
