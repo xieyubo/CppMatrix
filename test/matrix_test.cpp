@@ -243,6 +243,57 @@ MATRIX_TEST(MatrixAddScalar)
     test(5000, 5000);
 }
 
+MATRIX_TEST(MatrixSub)
+{
+    auto test = [](size_t row, size_t column, auto base) {
+        Matrix x { row, column };
+        Matrix y { row, column };
+
+        std::vector<Matrix::ElementType> xInitData(row * column);
+        std::vector<Matrix::ElementType> yInitData(row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            xInitData[i] = (base + i) * 2;
+            yInitData[i] = base + i;
+        }
+
+        x.Write(std::span<Matrix::ElementType> { xInitData });
+        y.Write(std::span<Matrix::ElementType> { yInitData });
+
+        auto z = x - y;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            ASSERT_FLOAT_EQ(res[i], base + i);
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column, row * column);
+        }
+    }
+
+    test(100, 100, 0.1_mf);
+    test(100, 100, 0.2_mf);
+    test(100, 100, 0.3_mf);
+
+    if (std::is_same_v<Matrix::ElementType, std::float16_t>) {
+        // Ignore following test cases for float16_t, the precision is too low and
+        // the cumulative error precision is big.
+        return;
+    }
+
+    test(1000, 1000, 0.4_mf);
+    test(1000, 1000, 0.5_mf);
+    test(1000, 1000, 0.6_mf);
+    test(5000, 5000, 0.7_mf);
+    test(5000, 5000, 0.8_mf);
+    test(5000, 5000, 0.9_mf);
+}
+
 MATRIX_TEST(MatrixSubScalar)
 {
     auto test = [](size_t row, size_t column) {
@@ -337,6 +388,123 @@ MATRIX_TEST(MatrixMul)
     test(50, 50, 50, 0.1f);
     test(50, 50, 50, 0.2f);
     test(50, 50, 50, 0.3f);
+}
+
+MATRIX_TEST(MatrixElementProduct)
+{
+    if (std::is_same_v<Matrix::ElementType, std::float16_t>) {
+        // Ignore this test for float16_t, the precision is too low and
+        // the cumulative error precision is big.
+        return;
+    }
+
+    auto test = [](size_t row, size_t column, auto base) {
+        Matrix x { row, column };
+        Matrix y { row, column };
+
+        std::vector<Matrix::ElementType> xInitData(row * column);
+        std::vector<Matrix::ElementType> yInitData(row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            xInitData[i] = yInitData[i] = base + i;
+        }
+
+        x.Write(std::span<Matrix::ElementType> { xInitData });
+        y.Write(std::span<Matrix::ElementType> { yInitData });
+
+        auto z = x.ElementProduct(y);
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            ASSERT_FLOAT_EQ(res[i], (base + i) * (base + i));
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column, 0.1_mf);
+        }
+    }
+
+    test(100, 100, 0.1_mf);
+    test(100, 100, 0.2_mf);
+    test(100, 100, 0.3_mf);
+}
+
+MATRIX_TEST(MatrixScalarSub)
+{
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+
+        std::vector<Matrix::ElementType> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
+
+        x.Write(std::span<Matrix::ElementType> { initData });
+
+        auto z = 0.5_mf - x;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto y = 0; y < row; ++y) {
+            for (auto x = 0; x < column; ++x) {
+                ASSERT_FLOAT_EQ(res[y * column + x], 0.5_mf - initData[y * column + x]);
+            }
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
+    }
+
+    test(100, 100);
+    test(1000, 1000);
+    test(5000, 5000);
+}
+
+MATRIX_TEST(MatrixScalarMul)
+{
+    auto test = [](size_t row, size_t column) {
+        Matrix x { row, column };
+
+        std::vector<Matrix::ElementType> initData(row * column);
+        auto i = 1;
+        for (auto& e : initData) {
+            e = i++;
+        }
+
+        x.Write(std::span<Matrix::ElementType> { initData });
+
+        auto z = 0.1_mf * x;
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto y = 0; y < row; ++y) {
+            for (auto x = 0; x < column; ++x) {
+                ASSERT_FLOAT_EQ(res[y * column + x], 0.1_mf * initData[y * column + x]);
+            }
+        }
+    };
+
+    for (auto row = 1u; row <= 10; ++row) {
+        for (auto column = 1u; column <= 10; ++column) {
+            test(row, column);
+        }
+    }
+
+    test(100, 100);
+    test(1000, 1000);
+    test(5000, 5000);
 }
 
 MATRIX_TEST(MatrixSigmoid)

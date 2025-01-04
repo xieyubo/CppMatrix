@@ -22,10 +22,7 @@ namespace cpp_matrix {
 export template <MatrixElementType T>
 class GpuMatrix {
     template <MatrixElementType R>
-    friend GpuMatrix<R> operator-(R v, const GpuMatrix<R>& m);
-
-    template <MatrixElementType R>
-    friend GpuMatrix<R> operator*(R v, const GpuMatrix<R>& m);
+    friend GpuMatrix<R> ScalarOp(R v, const GpuMatrix<R>& m, char op);
 
 public:
     GpuMatrix() = default;
@@ -127,7 +124,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-                WgslFeatures(T {}), WgslElementType(T {}), N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
+                WgslFeatures(), WgslElementType(), N, (m_paddingColumn >> 2), (other.m_paddingColumn >> 2));
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
@@ -145,7 +142,7 @@ fn main() {{
     }}
 }}
 )",
-                WgslFeatures(T {}), WgslElementType(T {}), N, m_paddingColumn >> 2);
+                WgslFeatures(), WgslElementType(), N, m_paddingColumn >> 2);
             parameters = std::vector<Parameter> {
                 { intermediaBuffer.get(), sizeof(T) * N * 4 * 4 },
                 { output.GetBuffer(), output.BufferSize() },
@@ -158,38 +155,7 @@ fn main() {{
 
     GpuMatrix operator+(const GpuMatrix& other) const
     {
-
-        if (m_row != other.m_row || m_column != other.m_column) {
-            throw std::runtime_error { "Shape is not the same." };
-        }
-
-        auto output = GpuMatrix { m_row, m_column };
-
-        // Caculate mat4x4
-        size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
-        if (N) {
-            auto code = std::format(R"({0}
-@group(0) @binding(0) var<storage, read_write> input1: array<mat4x4<{1}>>;
-@group(0) @binding(1) var<storage, read_write> input2: array<mat4x4<{1}>>;
-@group(0) @binding(2) var<storage, read_write> output: array<mat4x4<{1}>>;
-@compute @workgroup_size(256)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
-    let i: u32 = global_id.x;
-    if (i < {2}) {{
-        output[i] = input1[i] + input2[i];
-    }}
-}}
-)",
-                WgslFeatures(T {}), WgslElementType(T {}), N);
-            auto parameters = std::vector<Parameter> {
-                { GetBuffer(), BufferSize() },
-                { other.GetBuffer(), other.BufferSize() },
-                { output.GetBuffer(), output.BufferSize() },
-            };
-            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
-        }
-
-        return output;
+        return ElementWiseAddOrSub(other, '+');
     }
 
     GpuMatrix& operator+=(const GpuMatrix& other)
@@ -223,10 +189,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-            WgslFeatures(T {}), WgslElementType(T {}), N);
+            WgslFeatures(), WgslElementType(), N);
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
-            { vbuffer.get(), 4 /*sizeof(T)*/ },
+            { vbuffer.get(), sizeof(std::float32_t) },
             { output.GetBuffer(), output.BufferSize() },
         };
         webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
@@ -235,37 +201,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 
     GpuMatrix operator-(const GpuMatrix& other) const
     {
-        if (m_row != other.m_row || m_column != other.m_column) {
-            throw std::runtime_error { "Shape is not the same." };
-        }
-
-        auto output = GpuMatrix { m_row, m_column };
-
-        // Caculate mat4x4
-        size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
-        if (N) {
-            auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: array<mat4x4f>;
-@group(0) @binding(1) var<storage, read_write> input2: array<mat4x4f>;
-@group(0) @binding(2) var<storage, read_write> output: array<mat4x4f>;
-@compute @workgroup_size(256)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
-    let i: u32 = global_id.x;
-    if (i < {}) {{
-        output[i] = input1[i] - input2[i];
-    }}
-}}
-)",
-                N);
-            auto parameters = std::vector<Parameter> {
-                { GetBuffer(), BufferSize() },
-                { other.GetBuffer(), other.BufferSize() },
-                { output.GetBuffer(), output.BufferSize() },
-            };
-            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
-        }
-
-        return output;
+        return ElementWiseAddOrSub(other, '-');
     }
 
     GpuMatrix Sigmoid() const
@@ -285,7 +221,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-            WgslFeatures(T {}), WgslElementType(T {}), N);
+            WgslFeatures(), WgslElementType(), N);
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
@@ -311,7 +247,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-            WgslFeatures(T {}), WgslElementType(T {}), N, m_paddingRow >> 2, m_paddingColumn >> 2);
+            WgslFeatures(), WgslElementType(), N, m_paddingRow >> 2, m_paddingColumn >> 2);
         auto parameters = std::vector<Parameter> {
             { GetBuffer(), BufferSize() },
             { output.GetBuffer(), output.BufferSize() },
@@ -332,19 +268,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         // Caculate vec4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
         if (N) {
-            auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: array<vec4f>;
-@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
-@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+            auto code = std::format(R"({0}
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4<{1}>>;
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4<{1}>>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4<{1}>>;
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     let i: u32 = global_id.x;
-    if (i < {}) {{
+    if (i < {2}) {{
         output[i] = input1[i] * input2[i];
     }}
 }}
 )",
-                N);
+                WgslFeatures(), WgslElementType(), N);
             auto parameters = std::vector<Parameter> {
                 { GetBuffer(), BufferSize() },
                 { other.GetBuffer(), other.BufferSize() },
@@ -385,24 +321,49 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }
 
 private:
-    static constexpr const char* WgslElementType(std::float16_t)
+    static constexpr const char* WgslElementType()
     {
-        return "f16";
+        return std::is_same_v<T, std::float16_t> ? "f16" : "f32";
     }
 
-    static constexpr const char* WgslElementType(std::float32_t)
+    static constexpr const char* WgslFeatures()
     {
-        return "f32";
+        return std::is_same_v<T, std::float16_t> ? "enable f16;" : "";
     }
 
-    static constexpr const char* WgslFeatures(std::float16_t)
+    GpuMatrix ElementWiseAddOrSub(const GpuMatrix& other, char op) const
     {
-        return "enable f16;";
-    }
+        if (m_row != other.m_row || m_column != other.m_column) {
+            throw std::runtime_error { "Shape is not the same." };
+        }
 
-    static constexpr const char* WgslFeatures(std::float32_t)
-    {
-        return "";
+        auto output = GpuMatrix { m_row, m_column };
+
+        // Caculate mat4x4
+        size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
+        if (N) {
+            auto code = std::format(R"({0}
+@group(0) @binding(0) var<storage, read_write> input1: array<mat4x4<{1}>>;
+@group(0) @binding(1) var<storage, read_write> input2: array<mat4x4<{1}>>;
+@group(0) @binding(2) var<storage, read_write> output: array<mat4x4<{1}>>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {2}) {{
+        output[i] = input1[i] {3} input2[i];
+    }}
+}}
+)",
+                WgslFeatures(), WgslElementType(), N, op);
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { other.GetBuffer(), other.BufferSize() },
+                { output.GetBuffer(), output.BufferSize() },
+            };
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
+        }
+
+        return output;
     }
 
     int IndexInMat4x4ArrayMemory(int row, int column) const
@@ -474,32 +435,35 @@ private:
     gpu_ref_ptr<WGPUBuffer, wgpuBufferAddRef, wgpuBufferRelease> m_pBuffer {};
 };
 
-export template <MatrixElementType T>
-GpuMatrix<T> operator-(T v, const GpuMatrix<T>& m)
+template <MatrixElementType T>
+GpuMatrix<T> ScalarOp(T v, const GpuMatrix<T>& m, char op)
 {
     auto adapter = GpuInstance::GetInstance().GetAdapter();
     auto vbuffer = adapter->CreateBuffer<T>(1);
-    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(T));
+
+    // Buffer need 4 bytes aligned, so always write 4 bytes even it is std::float16_t
+    std::float32_t tmp { v };
+    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(tmp));
 
     auto output = GpuMatrix<T> { m.m_row, m.m_column };
 
     // Caculate mat4x4
     size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
-    auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: f32;
-@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
-@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
+    auto code = std::format(R"({0}
+@group(0) @binding(0) var<storage, read_write> input1: {1};
+@group(0) @binding(1) var<storage, read_write> input2: array<vec4<{1}>>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4<{1}>>;
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     let i: u32 = global_id.x;
-    if (i < {}) {{
-        output[i] = input1 - input2[i];
+    if (i < {2}) {{
+        output[i] = input1 {3} input2[i];
     }}
 }}
 )",
-        N);
+        GpuMatrix<T>::WgslFeatures(), GpuMatrix<T>::WgslElementType(), N, op);
     auto parameters = std::vector<Parameter> {
-        { vbuffer.get(), sizeof(T) },
+        { vbuffer.get(), sizeof(std::float32_t) },
         { m.GetBuffer(), m.BufferSize() },
         { output.GetBuffer(), output.BufferSize() },
     };
@@ -508,35 +472,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }
 
 export template <MatrixElementType T>
+GpuMatrix<T> operator-(T v, const GpuMatrix<T>& m)
+{
+    return ScalarOp(v, m, '-');
+}
+
+export template <MatrixElementType T>
 GpuMatrix<T> operator*(T v, const GpuMatrix<T>& m)
 {
-    auto adapter = GpuInstance::GetInstance().GetAdapter();
-    auto vbuffer = adapter->CreateBuffer<T>(1);
-    wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(T));
-
-    auto output = GpuMatrix<T> { m.m_row, m.m_column };
-
-    // Caculate mat4x4
-    size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
-    auto code = std::format(R"(
-@group(0) @binding(0) var<storage, read_write> input1: f32;
-@group(0) @binding(1) var<storage, read_write> input2: array<vec4f>;
-@group(0) @binding(2) var<storage, read_write> output: array<vec4f>;
-@compute @workgroup_size(256)
-fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
-    let i: u32 = global_id.x;
-    if (i < {}) {{
-        output[i] = input1 * input2[i];
-    }}
-}}
-)",
-        N);
-    auto parameters = std::vector<Parameter> {
-        { vbuffer.get(), sizeof(T) },
-        { m.GetBuffer(), m.BufferSize() },
-        { output.GetBuffer(), output.BufferSize() },
-    };
-    webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
-    return output;
+    return ScalarOp(v, m, '*');
 }
 }
