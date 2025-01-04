@@ -9,6 +9,7 @@ export module cpp_matrix:matrix;
 import :cpu_matrix;
 import :gpu_matrix;
 import :matrix_type;
+import :std_patch;
 
 namespace cpp_matrix {
 

@@ -5,6 +5,7 @@ module;
 
 export module webgpu:webgpu;
 import :gpu_instance;
+import :gpu_ref_ptr;
 
 namespace webgpu {
 

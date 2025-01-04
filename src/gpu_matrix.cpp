@@ -16,6 +16,7 @@ using namespace webgpu;
 
 export module cpp_matrix:gpu_matrix;
 import :matrix_type;
+import :std_patch;
 
 namespace cpp_matrix {
 

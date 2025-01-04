@@ -1,3 +1,6 @@
+#include <format>
+#include <span>
+
 static constexpr Matrix::ElementType operator""_mf(long double v)
 {
     return v;
