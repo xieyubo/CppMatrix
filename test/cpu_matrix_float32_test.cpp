@@ -2,19 +2,21 @@
 
 import cpp_matrix;
 
-class CpuMatrixTest : public testing::Test {
+class CpuMatrixFloat32Test : public testing::Test {
 public:
-    CpuMatrixTest()
+    CpuMatrixFloat32Test()
     {
         cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::CpuMatrix);
     }
 
-    ~CpuMatrixTest()
+    ~CpuMatrixFloat32Test()
     {
         cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
     }
 };
 
-#define MATRIX_TEST(X) TEST_F(CpuMatrixTest, X)
+#define MATRIX_TEST(X) TEST_F(CpuMatrixFloat32Test, X)
+
+using Matrix = cpp_matrix::Matrix<std::float32_t>;
 
 #include "matrix_test.cpp"

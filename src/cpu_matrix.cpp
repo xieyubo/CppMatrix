@@ -119,7 +119,7 @@ public:
         CpuMatrix res { m_row, other.m_column };
         for (auto y = 0; y < m_row; ++y) {
             for (auto x = 0; x < other.m_column; ++x) {
-                auto sum = .0f;
+                T sum = {};
                 for (auto i = 0; i < m_column; ++i) {
                     sum += m_data[y * m_column + i] * other.m_data[i * other.m_column + x];
                 }
@@ -133,7 +133,7 @@ public:
     {
         CpuMatrix res { m_row, m_column };
         for (auto i = 0u; i < m_row * m_column; ++i) {
-            res.m_data[i] = 1.f / (1.f + std::exp(-m_data[i]));
+            res.m_data[i] = 1.f / (1.f + std::exp(static_cast<float>(-m_data[i])));
         }
         return res;
     }

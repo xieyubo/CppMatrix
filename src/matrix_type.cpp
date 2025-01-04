@@ -27,6 +27,6 @@ export MatrixType GetDefaultMatrixType()
 }
 
 export template <typename T>
-concept MatrixElementType = std::is_same_v<T, std::float32_t>;
+concept MatrixElementType = std::is_same_v<T, std::float32_t> || std::is_same_v<T, std::float16_t>;
 
 }

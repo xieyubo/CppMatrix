@@ -18,15 +18,17 @@ class Matrix {
     friend Matrix operator*(float v, const Matrix& m);
 
 public:
+    using ElementType = T;
+
     /// @brief Create a matrix with random value (value will be between 0 and 1).
     static Matrix Random(size_t row, size_t column)
     {
         auto matrix = Matrix { row, column };
-        std::vector<float> initData(row * column);
+        std::vector<T> initData(row * column);
         for (auto& v : initData) {
             v = std::min(std::rand() / (float)RAND_MAX, 1.f);
         }
-        matrix.Write(std::span<float> { initData });
+        matrix.Write(std::span<T> { initData });
         return matrix;
     }
 
@@ -47,16 +49,16 @@ public:
     }
 
     template <size_t N>
-    void Write(std::span<float, N> data)
+    void Write(std::span<T, N> data)
     {
         if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Write(std::vector<float> { data.begin(), data.end() });
+            return p->Write(std::vector<T> { data.begin(), data.end() });
         } else {
             return std::get<GpuMatrix<T>>(m_matrix).Write(data);
         }
     }
 
-    std::vector<float> Read() const
+    std::vector<T> Read() const
     {
         if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->Read();
@@ -134,7 +136,7 @@ public:
         }
     }
 
-    Matrix& operator=(std::vector<float> data)
+    Matrix& operator=(std::vector<T> data)
     {
         if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             p->operator=(std::move(data));
@@ -144,15 +146,14 @@ public:
         return *this;
     }
 
-    Matrix& operator=(float f)
+    Matrix& operator=(T f)
     {
-        return operator=(std::vector<float> { f });
+        return operator=(std::vector<T> { f });
     }
 
-    template <size_t Extent = std::dynamic_extent>
-    Matrix& operator=(std::span<float, Extent> data)
+    Matrix& operator=(std::span<T> data)
     {
-        return operator=(std::vector<float> { data.begin(), data.end() });
+        return operator=(std::vector<T> { data.begin(), data.end() });
     }
 
     Matrix Transpose() const

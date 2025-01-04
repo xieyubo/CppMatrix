@@ -1,21 +1,7 @@
-#include <cmath>
-#include <gtest/gtest.h>
-
-import cpp_matrix;
-
-using Matrix = cpp_matrix::Matrix<float>;
-
-class MatrixTest : public testing::Test {
-public:
-    MatrixTest()
-    {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
-    }
-};
-
-#ifndef MATRIX_TEST
-#define MATRIX_TEST(X) TEST_F(MatrixTest, X)
-#endif
+static constexpr Matrix::ElementType operator""_mf(long double v)
+{
+    return v;
+}
 
 MATRIX_TEST(DefaultConstructor)
 {
@@ -39,18 +25,18 @@ MATRIX_TEST(CreateRandomMatrix)
 MATRIX_TEST(SetAbsoluteValue)
 {
     Matrix x {};
-    x = 1.123f;
+    x = 1.123_mf;
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 1);
 
     auto data = x.Read();
     ASSERT_EQ(data.size(), 1);
-    ASSERT_FLOAT_EQ(data[0], 1.123f);
+    ASSERT_FLOAT_EQ(data[0], 1.123_mf);
 }
 
 MATRIX_TEST(SetVector)
 {
-    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
+    std::vector<Matrix::ElementType> initData { 1.0_mf, 1.2_mf, 1.3_mf };
 
     Matrix x {};
     x = initData;
@@ -59,29 +45,29 @@ MATRIX_TEST(SetVector)
 
     auto data = x.Read();
     ASSERT_EQ(data.size(), 3);
-    ASSERT_FLOAT_EQ(data[0], 1.0f);
-    ASSERT_FLOAT_EQ(data[1], 1.2f);
-    ASSERT_FLOAT_EQ(data[2], 1.3f);
+    ASSERT_FLOAT_EQ(data[0], 1.0_mf);
+    ASSERT_FLOAT_EQ(data[1], 1.2_mf);
+    ASSERT_FLOAT_EQ(data[2], 1.3_mf);
 }
 
 MATRIX_TEST(SetInitializeList)
 {
     Matrix x {};
-    x = std::initializer_list<float> { 1.0f, 1.2f, 1.3f };
+    x = std::initializer_list<Matrix::ElementType> { 1.0_mf, 1.2_mf, 1.3_mf };
     ASSERT_EQ(x.Row(), 1);
     ASSERT_EQ(x.Column(), 3);
 
     auto data = x.Read();
     ASSERT_EQ(data.size(), 3);
-    ASSERT_FLOAT_EQ(data[0], 1.0f);
-    ASSERT_FLOAT_EQ(data[1], 1.2f);
-    ASSERT_FLOAT_EQ(data[2], 1.3f);
+    ASSERT_FLOAT_EQ(data[0], 1.0_mf);
+    ASSERT_FLOAT_EQ(data[1], 1.2_mf);
+    ASSERT_FLOAT_EQ(data[2], 1.3_mf);
 }
 
 MATRIX_TEST(SetSpan1)
 {
-    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
-    auto span = std::span<float, 3> { initData };
+    std::vector<Matrix::ElementType> initData { 1.0_mf, 1.2_mf, 1.3_mf };
+    auto span = std::span<Matrix::ElementType, 3> { initData };
 
     Matrix x {};
     x = span;
@@ -90,15 +76,15 @@ MATRIX_TEST(SetSpan1)
 
     auto data = x.Read();
     ASSERT_EQ(data.size(), 3);
-    ASSERT_FLOAT_EQ(data[0], 1.0f);
-    ASSERT_FLOAT_EQ(data[1], 1.2f);
-    ASSERT_FLOAT_EQ(data[2], 1.3f);
+    ASSERT_FLOAT_EQ(data[0], 1.0_mf);
+    ASSERT_FLOAT_EQ(data[1], 1.2_mf);
+    ASSERT_FLOAT_EQ(data[2], 1.3_mf);
 }
 
 MATRIX_TEST(SetSpan2)
 {
-    std::vector<float> initData { 1.0f, 1.2f, 1.3f };
-    auto span = std::span<float> { initData };
+    std::vector<Matrix::ElementType> initData { 1.0_mf, 1.2_mf, 1.3_mf };
+    auto span = std::span<Matrix::ElementType> { initData };
 
     Matrix x {};
     x = span;
@@ -107,9 +93,9 @@ MATRIX_TEST(SetSpan2)
 
     auto data = x.Read();
     ASSERT_EQ(data.size(), 3);
-    ASSERT_FLOAT_EQ(data[0], 1.0f);
-    ASSERT_FLOAT_EQ(data[1], 1.2f);
-    ASSERT_FLOAT_EQ(data[2], 1.3f);
+    ASSERT_FLOAT_EQ(data[0], 1.0_mf);
+    ASSERT_FLOAT_EQ(data[1], 1.2_mf);
+    ASSERT_FLOAT_EQ(data[2], 1.3_mf);
 }
 
 MATRIX_TEST(ReadByRowAndColumn)
@@ -117,23 +103,23 @@ MATRIX_TEST(ReadByRowAndColumn)
     Matrix x { 3, 2 };
 
     // clang-format off
-    std::vector<float> initData {
+    std::vector<Matrix::ElementType> initData {
         1.0f, 1.1f,
         2.0f, 2.2f,
         3.0f, 3.3f,
     };
     // clang-format on
 
-    x.Write(std::span<float> { initData });
+    x.Write(std::span<Matrix::ElementType> { initData });
     ASSERT_EQ(x.Row(), 3);
     ASSERT_EQ(x.Column(), 2);
 
-    ASSERT_FLOAT_EQ((x[0, 0]), 1.0f);
-    ASSERT_FLOAT_EQ((x[0, 1]), 1.1f);
-    ASSERT_FLOAT_EQ((x[1, 0]), 2.0f);
-    ASSERT_FLOAT_EQ((x[1, 1]), 2.2f);
-    ASSERT_FLOAT_EQ((x[2, 0]), 3.0f);
-    ASSERT_FLOAT_EQ((x[2, 1]), 3.3f);
+    ASSERT_FLOAT_EQ((x[0, 0]), 1.0_mf);
+    ASSERT_FLOAT_EQ((x[0, 1]), 1.1_mf);
+    ASSERT_FLOAT_EQ((x[1, 0]), 2.0_mf);
+    ASSERT_FLOAT_EQ((x[1, 1]), 2.2_mf);
+    ASSERT_FLOAT_EQ((x[2, 0]), 3.0_mf);
+    ASSERT_FLOAT_EQ((x[2, 1]), 3.3_mf);
 }
 
 MATRIX_TEST(MatrixAdd)
@@ -142,14 +128,14 @@ MATRIX_TEST(MatrixAdd)
         Matrix x { row, column };
         Matrix y { row, column };
 
-        std::vector<float> initData(row * column);
+        std::vector<Matrix::ElementType> initData(row * column);
         auto i = 1;
         for (auto& e : initData) {
             e = base + i++;
         }
 
-        x.Write(std::span<float> { initData });
-        y.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
+        y.Write(std::span<Matrix::ElementType> { initData });
 
         auto z = x + y;
         ASSERT_EQ(z.Row(), row);
@@ -187,14 +173,14 @@ MATRIX_TEST(MatrixSelfAdd)
         Matrix x { row, column };
         Matrix y { row, column };
 
-        std::vector<float> initData(row * column);
+        std::vector<Matrix::ElementType> initData(row * column);
         auto i = 1;
         for (auto& e : initData) {
             e = i++;
         }
 
-        x.Write(std::span<float> { initData });
-        y.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
+        y.Write(std::span<Matrix::ElementType> { initData });
 
         x += y;
         ASSERT_EQ(x.Row(), row);
@@ -225,15 +211,15 @@ MATRIX_TEST(MatrixAddScalar)
     auto test = [](size_t row, size_t column) {
         Matrix x { row, column };
 
-        std::vector<float> initData(row * column);
+        std::vector<Matrix::ElementType> initData(row * column);
         auto i = 1;
         for (auto& e : initData) {
             e = i++;
         }
 
-        x.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
 
-        auto z = x + 0.5f;
+        auto z = x + 0.5_mf;
         ASSERT_EQ(z.Row(), row);
         ASSERT_EQ(z.Column(), column);
 
@@ -241,7 +227,7 @@ MATRIX_TEST(MatrixAddScalar)
         ASSERT_EQ(res.size(), row * column);
         for (auto y = 0; y < row; ++y) {
             for (auto x = 0; x < column; ++x) {
-                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] + 0.5);
+                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] + 0.5_mf);
             }
         }
     };
@@ -262,15 +248,15 @@ MATRIX_TEST(MatrixSubScalar)
     auto test = [](size_t row, size_t column) {
         Matrix x { row, column };
 
-        std::vector<float> initData(row * column);
+        std::vector<Matrix::ElementType> initData(row * column);
         auto i = 1;
         for (auto& e : initData) {
             e = i++;
         }
 
-        x.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
 
-        auto z = x - 0.5f;
+        auto z = x - 0.5_mf;
         ASSERT_EQ(z.Row(), row);
         ASSERT_EQ(z.Column(), column);
 
@@ -278,7 +264,7 @@ MATRIX_TEST(MatrixSubScalar)
         ASSERT_EQ(res.size(), row * column);
         for (auto y = 0; y < row; ++y) {
             for (auto x = 0; x < column; ++x) {
-                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] - 0.5);
+                ASSERT_FLOAT_EQ(res[y * column + x], initData[y * column + x] - 0.5_mf);
             }
         }
     };
@@ -298,18 +284,18 @@ MATRIX_TEST(MatrixMul)
 {
     auto createMatrix = [](auto N, auto M, auto base) {
         Matrix x { N, M };
-        std::vector<float> initData(N * M);
+        std::vector<Matrix::ElementType> initData(N * M);
         for (auto n = 0; n < N; ++n) {
             for (auto m = 0; m < M; ++m) {
-                initData[n * M + m] = base + (n + 1) + ((m + 1) * 0.1f);
+                initData[n * M + m] = base + (n + 1) + ((m + 1) * 0.1_mf);
             }
         }
-        x.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
         return x;
     };
 
     // NxM * MxP
-    auto test = [&createMatrix](size_t n, size_t m, size_t p, float base) {
+    auto test = [&createMatrix](size_t n, size_t m, size_t p, Matrix::ElementType base) {
         auto x = createMatrix(n, m, base);
         auto y = createMatrix(m, p, base);
 
@@ -320,10 +306,10 @@ MATRIX_TEST(MatrixMul)
         auto res = z.Read();
         for (auto r = 0; r < n; ++r) {
             for (auto c = 0; c < p; ++c) {
-                float sum = 0.f;
+                auto sum = 0._mf;
                 for (auto i = 0; i < m; ++i) {
-                    auto a = base + (r + 1) + ((i + 1) * 0.1f);
-                    auto b = base + (i + 1) + ((c + 1) * 0.1f);
+                    auto a = base + (r + 1) + ((i + 1) * 0.1_mf);
+                    auto b = base + (i + 1) + ((c + 1) * 0.1_mf);
                     sum += a * b;
                 }
                 ASSERT_FLOAT_EQ((res[r * p + c]), sum);
@@ -352,36 +338,36 @@ MATRIX_TEST(MatrixSigmoid)
     Matrix x { 3, 1 };
 
     // clang-format off
-    std::vector<float> initData {
-        1.16f,
-        0.42f,
-        0.62f,
+    std::vector<Matrix::ElementType> initData {
+        1.16_mf,
+        0.42_mf,
+        0.62_mf,
     };
     // clang-format on
 
-    x.Write(std::span<float> { initData });
+    x.Write(std::span<Matrix::ElementType> { initData });
 
     auto z = x.Sigmoid();
     ASSERT_EQ(z.Row(), 3);
     ASSERT_EQ(z.Column(), 1);
 
     auto res = z.Read();
-    ASSERT_FLOAT_EQ(res[0], 0.76133269f);
-    ASSERT_FLOAT_EQ(res[1], 0.60348326f);
-    ASSERT_FLOAT_EQ(res[2], 0.65021855f);
+    ASSERT_FLOAT_EQ(res[0], 0.76133269_mf);
+    ASSERT_FLOAT_EQ(res[1], 0.60348326_mf);
+    ASSERT_FLOAT_EQ(res[2], 0.65021855_mf);
 }
 
 MATRIX_TEST(MatrixTranspose)
 {
     auto test = [](size_t M, size_t N) {
         Matrix x { M, N };
-        std::vector<float> initData(M * N);
+        std::vector<Matrix::ElementType> initData(M * N);
         for (auto m = 0; m < M; ++m) {
             for (auto n = 0; n < N; ++n) {
                 initData[m * N + n] = m * 100 + n;
             }
         }
-        x.Write(std::span<float> { initData });
+        x.Write(std::span<Matrix::ElementType> { initData });
 
         auto z = x.Transpose();
         ASSERT_EQ(z.Row(), N);
