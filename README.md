@@ -1,6 +1,8 @@
 CppMatrix (experiment)
 ==
 
+_Works for Ubuntu 24.10 (clang++-19) only._
+
 ## Install Dependencies:
 
     sudo apt install \
