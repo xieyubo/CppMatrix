@@ -8,33 +8,28 @@ module;
 
 import cpp_matrix;
 
-using Matrix = cpp_matrix::Matrix<float>;
-
 export module neural_network;
 
-template <typename T>
-static bool AreEqual(T f1, T f2)
-{
-    return (std::fabs(f1 - f2) <= std::numeric_limits<T>::epsilon() * std::fmax(std::fabs(f1), std::fabs(f2)));
-}
+using namespace cpp_matrix;
 
-export class NeuralNetwork {
+export template <MatrixElementType T>
+class NeuralNetwork {
 public:
     NeuralNetwork(size_t inputNodes, size_t hiddenNodes, size_t outputNodes, float learningRate)
         : m_inodes { inputNodes }
         , m_hnodes { hiddenNodes }
         , m_onodes { outputNodes }
-        , m_wih { Matrix::Random(hiddenNodes, inputNodes) - 0.5f }
-        , m_who { Matrix::Random(outputNodes, hiddenNodes) - 0.5f }
+        , m_wih { Matrix<T>::Random(hiddenNodes, inputNodes) - 0.5f }
+        , m_who { Matrix<T>::Random(outputNodes, hiddenNodes) - 0.5f }
         , m_lr { learningRate }
     {
     }
 
-    void Train(std::vector<float> inputs_list, std::vector<float> targets_list)
+    void Train(std::vector<T> inputs_list, std::vector<T> targets_list)
     {
         // convert inputs list to matrix
-        auto inputs = Matrix { m_inodes, /*column=*/1, inputs_list };
-        auto targets = Matrix { m_onodes, /*column=*/1, targets_list };
+        auto inputs = Matrix<T> { m_inodes, /*column=*/1, inputs_list };
+        auto targets = Matrix<T> { m_onodes, /*column=*/1, targets_list };
 
         // calculate signals into hidden layer
         auto hidden_inputs = m_wih * inputs;
@@ -65,10 +60,10 @@ public:
                 * inputs.Transpose()));
     }
 
-    std::vector<float> Query(std::vector<float> inputs_list)
+    std::vector<T> Query(std::vector<T> inputs_list)
     {
         // convert inputs list to matrix
-        auto inputs = Matrix { m_inodes, /*column=*/1, inputs_list };
+        auto inputs = Matrix<T> { m_inodes, /*column=*/1, inputs_list };
 
         // caculate signals into hidden layer
         auto hidden_inputs = m_wih * inputs;
@@ -89,7 +84,7 @@ private:
     size_t m_inodes {};
     size_t m_hnodes {};
     size_t m_onodes {};
-    Matrix m_wih {};
-    Matrix m_who {};
+    Matrix<T> m_wih {};
+    Matrix<T> m_who {};
     float m_lr {};
 };

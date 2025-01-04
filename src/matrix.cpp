@@ -14,8 +14,8 @@ namespace cpp_matrix {
 
 export template <MatrixElementType T>
 class Matrix {
-    friend Matrix operator-(float v, const Matrix& m);
-    friend Matrix operator*(float v, const Matrix& m);
+    friend Matrix operator-(T v, const Matrix& m);
+    friend Matrix operator*(T v, const Matrix& m);
 
 public:
     using ElementType = T;
@@ -42,7 +42,7 @@ public:
     {
     }
 
-    Matrix(size_t row, size_t column, std::span<float> initData, MatrixType type = MatrixType::Auto)
+    Matrix(size_t row, size_t column, std::span<T> initData, MatrixType type = MatrixType::Auto)
         : m_matrix { CreateMatrix(type, row, column) }
     {
         Write(initData);
@@ -240,6 +240,24 @@ export Matrix<std::float32_t> operator*(std::float32_t v, const Matrix<std::floa
         return operator*(v, *p);
     } else {
         return operator*(v, std::get<GpuMatrix<std::float32_t>>(m.m_matrix));
+    }
+}
+
+export Matrix<std::float16_t> operator-(std::float16_t v, const Matrix<std::float16_t>& m)
+{
+    if (auto p = std::get_if<CpuMatrix<std::float16_t>>(&m.m_matrix)) {
+        return operator-(v, *p);
+    } else {
+        return operator-(v, std::get<GpuMatrix<std::float16_t>>(m.m_matrix));
+    }
+}
+
+export Matrix<std::float16_t> operator*(std::float16_t v, const Matrix<std::float16_t>& m)
+{
+    if (auto p = std::get_if<CpuMatrix<std::float16_t>>(&m.m_matrix)) {
+        return operator*(v, *p);
+    } else {
+        return operator*(v, std::get<GpuMatrix<std::float16_t>>(m.m_matrix));
     }
 }
 
