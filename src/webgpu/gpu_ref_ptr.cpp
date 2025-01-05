@@ -15,7 +15,8 @@ export struct Parameter {
     size_t size {};
 };
 
-export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle), void (*GPURelease)(TGPUNativeHandle)>
+export template <typename TGPUNativeHandle, void (*GPUReference)(TGPUNativeHandle),
+    void (*GPURelease)(TGPUNativeHandle)>
 class gpu_ref_ptr {
 public:
     gpu_ref_ptr() = default;
@@ -36,6 +37,13 @@ public:
     explicit gpu_ref_ptr(TGPUNativeHandle handle)
         : m_handle { handle }
     {
+    }
+
+    ~gpu_ref_ptr()
+    {
+        if (m_handle) {
+            GPURelease(m_handle);
+        }
     }
 
     void reset(TGPUNativeHandle handle)
