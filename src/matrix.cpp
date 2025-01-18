@@ -174,12 +174,21 @@ public:
         }
     }
 
-    Matrix ElementProduct(const Matrix& other)
+    Matrix ElementProduct(const Matrix& other) const
     {
         if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
             return p->ElementProduct(std::get<CpuMatrix<T>>(other.m_matrix));
         } else {
             return std::get<GpuMatrix<T>>(m_matrix).ElementProduct(std::get<GpuMatrix<T>>(other.m_matrix));
+        }
+    }
+
+    Matrix Relu() const
+    {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->Relu();
+        } else {
+            return std::get<GpuMatrix<T>>(m_matrix).Relu();
         }
     }
 

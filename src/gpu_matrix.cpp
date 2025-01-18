@@ -256,7 +256,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
-    GpuMatrix ElementProduct(const GpuMatrix& other)
+    GpuMatrix ElementProduct(const GpuMatrix& other) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
@@ -318,6 +318,36 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
             ret = data[i];
         });
         return ret;
+    }
+
+    GpuMatrix Relu() const
+    {
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto output = GpuMatrix { m_row, m_column };
+
+        // Caculate vec4x4
+        size_t N = (m_paddingRow >> 2) * m_paddingColumn;
+        if (N) {
+            auto code = std::format(R"({0}
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4<{1}>>;
+@group(0) @binding(1) var<storage, read_write> output: array<vec4<{1}>>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {2}) {{
+        output[i] = max(input1[i], vec4<{1}>(0.0));
+    }}
+}}
+)",
+                WgslFeatures(), WgslElementType(), N);
+            auto parameters = std::vector<Parameter> {
+                { GetBuffer(), BufferSize() },
+                { output.GetBuffer(), output.BufferSize() },
+            };
+            webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
+        }
+
+        return output;
     }
 
 private:

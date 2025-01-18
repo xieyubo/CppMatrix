@@ -149,7 +149,7 @@ public:
         return res;
     }
 
-    CpuMatrix ElementProduct(const CpuMatrix& other)
+    CpuMatrix ElementProduct(const CpuMatrix& other) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
@@ -161,6 +161,17 @@ public:
         auto* p2 = other.m_data.data();
         for (auto i = 0u; i < m_row * m_column; ++i) {
             *pR++ = *p1++ * *p2++;
+        }
+        return res;
+    }
+
+    CpuMatrix Relu() const
+    {
+        CpuMatrix res { m_row, m_column };
+        const auto* p = m_data.data();
+        auto* pR = res.m_data.data();
+        for (auto i = 0; i < m_row * m_column; ++i) {
+            *pR++ = std::max((T)0, *p++);
         }
         return res;
     }
