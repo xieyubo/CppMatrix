@@ -44,12 +44,14 @@ private:
         // Request adapter.
         auto adapterPromise = std::promise<GpuAdapterPtr>();
         auto adapterFuture = adapterPromise.get_future();
-        wgpuInstanceRequestAdapter(
-            m_pInstance.get(), nullptr,
-            [](WGPURequestAdapterStatus status, WGPUAdapter adapter, WGPUStringView message, void* pUserData) {
-                ((std::promise<GpuAdapterPtr>*)pUserData)->set_value(GpuAdapterPtr { adapter });
-            },
-            &adapterPromise);
+        wgpuInstanceRequestAdapter(m_pInstance.get(), nullptr,
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback =
+                    [](WGPURequestAdapterStatus status, WGPUAdapter adapter, struct WGPUStringView message,
+                        void* userdata1, void* userdata2) {
+                        ((std::promise<GpuAdapterPtr>*)userdata1)->set_value(GpuAdapterPtr { adapter });
+                    },
+                .userdata1 = &adapterPromise });
         auto pAdapter = Wait(adapterFuture);
 
         // Request device.
@@ -72,18 +74,20 @@ private:
         WGPUDeviceDescriptor desc = WGPU_DEVICE_DESCRIPTOR_INIT;
         desc.requiredFeatureCount = features.size();
         desc.requiredFeatures = std::data(features);
-        wgpuAdapterRequestDevice(
-            adapter, &desc,
-            [](WGPURequestDeviceStatus status, WGPUDevice device, WGPUStringView message, void* pUserData) {
-                auto pPromise = (std::promise<GpuDevicePtr>*)pUserData;
-                if (status == WGPURequestDeviceStatus_Success) {
-                    pPromise->set_value(GpuDevicePtr { device });
-                } else {
-                    pPromise->set_exception(std::make_exception_ptr(
-                        std::runtime_error { std::string { message.data, message.data + message.length } }));
-                }
-            },
-            &devicePromise);
+        wgpuAdapterRequestDevice(adapter, &desc,
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback =
+                    [](WGPURequestDeviceStatus status, WGPUDevice device, struct WGPUStringView message,
+                        void* userdata1, void* userdata2) {
+                        auto pPromise = (std::promise<GpuDevicePtr>*)userdata1;
+                        if (status == WGPURequestDeviceStatus_Success) {
+                            pPromise->set_value(GpuDevicePtr { device });
+                        } else {
+                            pPromise->set_exception(std::make_exception_ptr(
+                                std::runtime_error { std::string { message.data, message.data + message.length } }));
+                        }
+                    },
+                .userdata1 = &devicePromise });
         return Wait(deviceFuture);
     }
 

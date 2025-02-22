@@ -422,25 +422,24 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         auto submitPromise = std::promise<WGPUQueueWorkDoneStatus>();
         auto submitFuture = submitPromise.get_future();
         wgpuQueueSubmit(adapter->GetQueue(), 1, &commandBuffer);
-        wgpuQueueOnSubmittedWorkDone(
-            adapter->GetQueue(),
-            [](WGPUQueueWorkDoneStatus status, void* callbackData) {
-                ((std::promise<WGPUQueueWorkDoneStatus>*)callbackData)->set_value(status);
-            },
-            &submitPromise);
+        wgpuQueueOnSubmittedWorkDone(adapter->GetQueue(),
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback
+                = [](WGPUQueueWorkDoneStatus status, void* userdata1,
+                      void* userdata2) { ((std::promise<WGPUQueueWorkDoneStatus>*)userdata1)->set_value(status); },
+                .userdata1 = &submitPromise });
         if (auto status = Wait(submitFuture); status != WGPUQueueWorkDoneStatus_Success) {
             throw std::runtime_error { "wgpuQueueOnSubmittedWorkDone failed." };
         }
 
-        auto mapPromise = std::promise<WGPUBufferMapAsyncStatus>();
+        auto mapPromise = std::promise<WGPUMapAsyncStatus>();
         auto mapFuture = mapPromise.get_future();
-        wgpuBufferMapAsync(
-            pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize,
-            [](WGPUBufferMapAsyncStatus status, void* captureData) {
-                ((std::promise<WGPUBufferMapAsyncStatus>*)captureData)->set_value(status);
-            },
-            &mapPromise);
-        if (auto status = Wait(mapFuture); status != WGPUBufferMapAsyncStatus_Success) {
+        wgpuBufferMapAsync(pReadbackBuffer.get(), WGPUMapMode_Read, 0, bufferSize,
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback = [](WGPUMapAsyncStatus status, struct WGPUStringView message, void* userdata1,
+                                void* userdata2) { ((std::promise<WGPUMapAsyncStatus>*)userdata1)->set_value(status); },
+                .userdata1 = &mapPromise });
+        if (auto status = Wait(mapFuture); status != WGPUMapAsyncStatus_Success) {
             throw std::runtime_error { "wgpuBufferMapAsync failed." };
         }
 

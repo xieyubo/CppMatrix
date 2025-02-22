@@ -182,30 +182,33 @@ private:
 
         auto compilationPromise = std::promise<void> {};
         auto compilationFuture = compilationPromise.get_future();
-        wgpuShaderModuleGetCompilationInfo(
-            computePipelineDesc.compute.module,
-            [](WGPUCompilationInfoRequestStatus status, WGPUCompilationInfo const* compilationInfo, void* userData) {
-                if (compilationInfo) {
-                    for (uint32_t i = 0; i < compilationInfo->messageCount; ++i) {
-                        printf("Message %d: %s\n", i,
-                            std::string {
-                                compilationInfo->messages[i].message.data, compilationInfo->messages[i].message.length }
-                                .c_str());
-                    }
-                    ((std::promise<void>*)userData)->set_value();
-                }
-            },
-            &compilationPromise);
+        wgpuShaderModuleGetCompilationInfo(computePipelineDesc.compute.module,
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback =
+                    [](WGPUCompilationInfoRequestStatus status, struct WGPUCompilationInfo const* compilationInfo,
+                        void* userdata1, void* userdata2) {
+                        if (compilationInfo) {
+                            for (uint32_t i = 0; i < compilationInfo->messageCount; ++i) {
+                                printf("Message %d: %s\n", i,
+                                    std::string { compilationInfo->messages[i].message.data,
+                                        compilationInfo->messages[i].message.length }
+                                        .c_str());
+                            }
+                            ((std::promise<void>*)userdata1)->set_value();
+                        }
+                    },
+                .userdata1 = &compilationPromise });
         Wait(compilationFuture);
 
         // Submit the command buffer.
         auto submitPromise = std::promise<void> {};
         auto submitFuture = submitPromise.get_future();
         wgpuQueueSubmit(m_pQueue.get(), 1, commandBuffer.get_addr());
-        wgpuQueueOnSubmittedWorkDone(
-            m_pQueue.get(),
-            [](WGPUQueueWorkDoneStatus status, void* data) { ((std::promise<void>*)data)->set_value(); },
-            &submitPromise);
+        wgpuQueueOnSubmittedWorkDone(m_pQueue.get(),
+            { .mode = WGPUCallbackMode_AllowProcessEvents,
+                .callback = [](WGPUQueueWorkDoneStatus status, void* userdata1,
+                                void* userdata2) { ((std::promise<void>*)userdata1)->set_value(); },
+                .userdata1 = &submitPromise });
         Wait(submitFuture);
     }
 
