@@ -5,10 +5,11 @@ module;
 #include <vector>
 #include <string>
 
-export module hexapawn_zero.common:board;
+export module hexapawn_zero:game;
 
 export class Board {
 public:
+    const int DRAW = -1;
     const int EMPTY = 0;
     const int WHITE = 1;
     const int BLACK = 2;
