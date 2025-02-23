@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-on-ubuntu-24.04:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build on Ubuntu 24.04
+        run: |
+          echo TODO
+
+  build-on-ubuntu-24.10:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build on Ubuntu 24.10
+        run: |
+          echo TODO
