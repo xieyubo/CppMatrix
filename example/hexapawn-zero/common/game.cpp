@@ -9,6 +9,7 @@ export module hexapawn_zero:game;
 
 export class Board {
 public:
+    const int None = -1;
     const int DRAW = -1;
     const int EMPTY = 0;
     const int WHITE = 1;
@@ -91,7 +92,6 @@ public:
 
     std::pair<bool, int> isTerminal()
     {
-        const int None = -1;
         auto winner = None;
         // black wins if she has placed a pawn on the 0th row
         if (self.board[6] == self.BLACK ||
@@ -288,10 +288,21 @@ public:
         return self.legal_moves;
     }
 
+    int turn;
+
+    Board(const Board& board)
+        : turn { board.turn }
+        , board { board.board }
+        , outputIndex { board.outputIndex }
+        , legal_moves { board.legal_moves }
+        , WHITE_PAWN_CAPTURES { board.WHITE_PAWN_CAPTURES }
+        , BLACK_PAWN_CAPTURES { board.BLACK_PAWN_CAPTURES }
+    {
+    }
+
 private:
     Board& self {*this};
     std::vector<int> board;
-    int turn;
     std::map<std::pair<int, int>, int> outputIndex;
     std::vector<std::pair<int, int>> legal_moves;
     std::vector<std::vector<int>> WHITE_PAWN_CAPTURES;

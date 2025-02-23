@@ -8,7 +8,8 @@ CppMatrix (experiment)
         clang-tools \
         cmake \
         libgtest-dev \
-        ninja-build
+        ninja-build \
+        nlohmann-json3-dev\
 
 ## Build:
 

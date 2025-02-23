@@ -7,7 +7,8 @@ RUN apt update && \
         clang-tools \
         cmake \
         libgtest-dev \
-        ninja-build
+        ninja-build \
+        nlohmann-json3-dev\
 
 WORKDIR /src
 
