@@ -1,19 +1,30 @@
 name: CI
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-on-ubuntu-24.04:
+  build-on-ubuntu-2404:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Build on Ubuntu 24.04
         run: |
-          echo TODO
+          docker build --build-arg UBUNTU_VERSION=24.04 -t cpp-matrix:ubuntu-24.04 .
 
-  build-on-ubuntu-24.10:
+  build-on-ubuntu-2410:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Build on Ubuntu 24.10
         run: |
-          echo TODO
+          docker build --build-arg UBUNTU_VERSION=24.10 -t cpp-matrix:ubuntu-24.04 .
