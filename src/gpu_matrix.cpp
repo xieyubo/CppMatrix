@@ -1,22 +1,28 @@
 module;
 
+#include "std_patch.h"
+#include <array>
 #include <cassert>
 #include <format>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <span>
 #include <stdexcept>
+#include <stdfloat>
 #include <unordered_map>
 #include <vector>
 #include <webgpu/webgpu.h>
 
 import webgpu;
 
+void CudaPow(std::float32_t* inputA, std::float32_t* inputB, std::float32_t* output, size_t bufferSize);
+void CudaPow(std::float16_t* inputA, std::float16_t* inputB, std::float16_t* output, size_t bufferSize);
+
 using namespace webgpu;
 
 export module cpp_matrix:gpu_matrix;
 import :matrix_type;
-import :std_patch;
 
 namespace cpp_matrix {
 
@@ -349,6 +355,63 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         }
 
         return output;
+    }
+
+    GpuMatrix Pow(T e) const
+    {
+#if ENABLE_CUDA
+        auto inputA = Read();
+        auto inputB = std::vector<T>(inputA.size(), e);
+        auto outputC = std::vector<T>(inputA.size());
+        CudaPow(inputA.data(), inputB.data(), outputC.data(), sizeof(T) * inputA.size());
+
+        auto output = GpuMatrix { m_row, m_column };
+        output.Write(outputC);
+        return output;
+#else
+        auto adapter = GpuInstance::GetInstance().GetAdapter();
+        auto vbuffer = adapter->CreateBuffer<T>(4);
+        constexpr auto vbufferByteSize = sizeof(T) * 4;
+
+        // Buffer need 4 bytes aligned, so always write 4 bytes even it is std::float16_t
+        auto tmp = std::array<T, 4> { e, e, e, e };
+        auto p = (uint8_t*)&tmp[0];
+        printf("0x%x 0x%x 0x%x 0x%x\n", p[0], p[1], p[2], p[3]);
+        auto m = 0x40400000;
+        float v = *(float*)&m;
+        static_assert(vbufferByteSize == sizeof(T) * tmp.size());
+        auto* pp = (void*)tmp.data();
+        wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, pp, vbufferByteSize);
+
+        auto output = GpuMatrix { m_row, m_column };
+
+        // Caculate vec4x4
+        size_t N = (m_paddingRow >> 2) * m_paddingColumn;
+        auto code = std::format(R"({0}
+@group(0) @binding(0) var<storage, read_write> input1: array<vec4<{1}>>;
+@group(0) @binding(1) var<storage, read_write> input2: vec4<{1}>;
+@group(0) @binding(2) var<storage, read_write> output: array<vec4<{1}>>;
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+    let i: u32 = global_id.x;
+    if (i < {2}) {{
+        output[i][0] = pow(input1[i][0], 3);
+        output[i][1] = pow(input1[i][0], input2[0]);
+        output[i][2] = input2[2];
+        output[i][3] = input2[3];
+    }}
+}}
+)",
+            WgslFeatures(), WgslElementType(), N);
+        std::cout << code << std::endl;
+        auto parameters = std::vector<Parameter> {
+            { GetBuffer(), BufferSize() },
+            { vbuffer.get(), vbufferByteSize },
+            { output.GetBuffer(), output.BufferSize() },
+        };
+        webgpu::Run(code, { parameters.begin(), parameters.end() }, N, 256);
+        return output;
+#endif
     }
 
 private:

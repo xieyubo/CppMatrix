@@ -1,10 +1,10 @@
 module;
 
+#include "std_patch.h"
 #include <cstdint>
 #include <type_traits>
 
 export module cpp_matrix:matrix_type;
-import :std_patch;
 
 namespace cpp_matrix {
 

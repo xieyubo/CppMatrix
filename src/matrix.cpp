@@ -1,5 +1,6 @@
 module;
 
+#include "std_patch.h"
 #include <span>
 #include <stdexcept>
 #include <variant>
@@ -9,7 +10,6 @@ export module cpp_matrix:matrix;
 import :cpu_matrix;
 import :gpu_matrix;
 import :matrix_type;
-import :std_patch;
 
 namespace cpp_matrix {
 
@@ -192,6 +192,18 @@ public:
             return std::get<GpuMatrix<T>>(m_matrix).Relu();
         }
     }
+
+#ifdef ENABLE_CUDA
+    // NOTE! if element is less than 0, will return NaN.
+    Matrix Pow(T e) const
+    {
+        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
+            return p->Pow(e);
+        } else {
+            return std::get<GpuMatrix<T>>(m_matrix).Pow(e);
+        }
+    }
+#endif
 
     float operator[](size_t row, size_t column) const
     {

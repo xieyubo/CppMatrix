@@ -1,3 +1,4 @@
+#include <cmath>
 #include <format>
 #include <span>
 
@@ -594,3 +595,36 @@ MATRIX_TEST(Relu)
         }
     }
 }
+
+#if ENABLE_CUDA
+MATRIX_TEST(Pow)
+{
+    auto test = [](size_t row, size_t column, Matrix::ElementType e) {
+        Matrix x { row, column };
+
+        std::vector<Matrix::ElementType> xInitData(row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            xInitData[i] = i % 2 ? (i * -0.1_mf) : (i * 0.1_mf);
+        }
+
+        x.Write(std::span<Matrix::ElementType> { xInitData });
+        auto z = x.Pow(e);
+        ASSERT_EQ(z.Row(), row);
+        ASSERT_EQ(z.Column(), column);
+
+        auto res = z.Read();
+        ASSERT_EQ(res.size(), row * column);
+        for (auto i = 0; i < row * column; ++i) {
+            ASSERT_FLOAT_EQ(res[i], pow(xInitData[i], e));
+        }
+    };
+
+    for (auto m = 1u; m <= 20; ++m) {
+        for (auto n = 1u; n <= 20; ++n) {
+            for (auto e = 1u; e <= 1; ++e) {
+                test(m, n, e);
+            }
+        }
+    }
+}
+#endif

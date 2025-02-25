@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(cpp_matrix CXX)
+set(CMAKE_CUDA_ARCHITECTURES "native")
+project(cpp_matrix CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -27,6 +28,11 @@ if ((NOT EXISTS ${WEBGPU_PATH}/libwebgpu_dawn.so) OR (NOT EXISTS ${WEBGPU_PATH}/
 endif()
 
 add_compile_options(-g)
+if(ENABLE_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    include_directories(${CUDAToolkit_INCLUDE_DIRS})
+    add_compile_options(-DENABLE_CUDA=1)
+endif()
 
 include_directories(
     ${WEBGPU_PATH}/..

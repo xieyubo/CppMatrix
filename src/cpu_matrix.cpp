@@ -176,6 +176,17 @@ public:
         return res;
     }
 
+    CpuMatrix Pow(T e) const
+    {
+        CpuMatrix res { m_row, m_column };
+        const auto* p = m_data.data();
+        auto* pR = res.m_data.data();
+        for (auto i = 0; i < m_row * m_column; ++i) {
+            *pR++ = pow(*p++, e);
+        }
+        return res;
+    }
+
     T operator[](size_t row, size_t column) const
     {
         if (row >= m_row || column >= m_column) {
