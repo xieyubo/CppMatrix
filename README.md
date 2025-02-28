@@ -26,11 +26,11 @@ and the test data from https://raw.githubusercontent.com/makeyourownneuralnetwor
 
 then run it like this:
 
-    $ ./build/example/mnist/mnist mnist_train_100.csv mnist_test_10.csv --use-cpu
+    $ ./build/example/mnist/mnist mnist_train_100.csv mnist_test_10.csv
 
-or using gpu:
+or using webgpu backend:
 
-    $ ./build/example/mnist/mnist mnist_train_100.csv mnist_test_10.csv --use-gpu
+    $ ./build/example/mnist/mnist mnist_train_100.csv mnist_test_10.csv --use-webgpu
 
 output:
 

@@ -1,13 +1,14 @@
 module;
 
 #include <cmath>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
 export module cpp_matrix:cpu_matrix;
 import :matrix_type;
 
-namespace cpp_matrix {
+namespace cpp_matrix::backend {
 
 export template <MatrixElementType T>
 class CpuMatrix {
@@ -18,6 +19,8 @@ class CpuMatrix {
     friend CpuMatrix<R> operator*(R v, const CpuMatrix<R>& m);
 
 public:
+    using ElementType = T;
+
     CpuMatrix() = default;
 
     CpuMatrix(size_t row, size_t column)
@@ -45,13 +48,13 @@ public:
         return *this;
     }
 
-    void Write(std::vector<T> data)
+    void Write(std::span<T> data)
     {
         if (m_row * m_column != data.size()) {
             throw std::runtime_error { "Elements size is not the same." };
         }
 
-        m_data = std::move(data);
+        m_data = std::vector<T> { std::begin(data), std::end(data) };
     }
 
     std::vector<T> Read() const

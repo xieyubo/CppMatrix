@@ -7,29 +7,34 @@ module;
 
 export module cpp_matrix:matrix;
 import :cpu_matrix;
-import :gpu_matrix;
+import :webgpu_matrix;
 import :matrix_type;
 import :std_patch;
 
 namespace cpp_matrix {
 
-export template <MatrixElementType T>
-class Matrix {
-    friend Matrix operator-(T v, const Matrix& m);
-    friend Matrix operator*(T v, const Matrix& m);
+template <typename T>
+concept MatrixBackend = std::is_same_v<T, backend::CpuMatrix<std::float16_t>>
+    || std::is_same_v<T, backend::CpuMatrix<std::float32_t>> || std::is_same_v<T, backend::WebGpuMatrix<std::float16_t>>
+    || std::is_same_v<T, backend::WebGpuMatrix<std::float32_t>>;
 
+template <MatrixBackend M>
+class Matrix {
 public:
-    using ElementType = T;
+    using ElementType = M::ElementType;
+
+    friend Matrix operator-(ElementType v, const Matrix& m);
+    friend Matrix operator*(ElementType v, const Matrix& m);
 
     /// @brief Create a matrix with random value (value will be between 0 and 1).
     static Matrix Random(size_t row, size_t column)
     {
         auto matrix = Matrix { row, column };
-        std::vector<T> initData(row * column);
+        std::vector<ElementType> initData(row * column);
         for (auto& v : initData) {
             v = std::min(std::rand() / (float)RAND_MAX, 1.f);
         }
-        matrix.Write(std::span<T> { initData });
+        matrix.Write(std::span<ElementType> { initData });
         return matrix;
     }
 
@@ -38,237 +43,163 @@ public:
     {
     }
 
-    Matrix(size_t row, size_t column, MatrixType type = MatrixType::Auto)
-        : m_matrix { CreateMatrix(type, row, column) }
+    Matrix(size_t row, size_t column)
+        : m_matrix { row, column }
     {
     }
 
-    Matrix(size_t row, size_t column, std::span<T> initData, MatrixType type = MatrixType::Auto)
-        : m_matrix { CreateMatrix(type, row, column) }
+    Matrix(size_t row, size_t column, std::span<ElementType> initData)
+        : m_matrix { row, column }
     {
         Write(initData);
     }
 
     template <size_t N>
-    void Write(std::span<T, N> data)
+    void Write(std::span<ElementType, N> data)
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Write(std::vector<T> { data.begin(), data.end() });
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Write(data);
-        }
+        m_matrix.Write(data);
     }
 
-    std::vector<T> Read() const
+    std::vector<ElementType> Read() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Read();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Read();
-        }
+        return m_matrix.Read();
     }
 
     Matrix operator+(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->operator+(std::get<CpuMatrix<T>>(other.m_matrix));
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).operator+(std::get<WebGpuMatrix<T>>(other.m_matrix));
-        }
+        return m_matrix + other.m_matrix;
     }
 
     Matrix& operator+=(const Matrix& other)
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            p->operator+=(std::get<CpuMatrix<T>>(other.m_matrix));
-        } else {
-            std::get<WebGpuMatrix<T>>(m_matrix).operator+=(std::get<WebGpuMatrix<T>>(other.m_matrix));
-        }
+        m_matrix += other.m_matrix;
         return *this;
     }
 
     Matrix operator-(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->operator-(std::get<CpuMatrix<T>>(other.m_matrix));
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).operator-(std::get<WebGpuMatrix<T>>(other.m_matrix));
-        }
+        return m_matrix - other.m_matrix;
     }
 
-    Matrix operator+(float v) const
+    Matrix operator+(ElementType v) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->operator+(v);
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).operator+(v);
-        }
+        return m_matrix + v;
     }
 
-    Matrix operator-(float v) const
+    Matrix operator-(ElementType v) const
     {
         return *this + (-v);
     }
 
     Matrix operator*(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->operator*(std::get<CpuMatrix<T>>(other.m_matrix));
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).operator*(std::get<WebGpuMatrix<T>>(other.m_matrix));
-        }
+        return m_matrix * other.m_matrix;
     }
 
     size_t Row() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Row();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Row();
-        }
+        return m_matrix.Row();
     }
 
     size_t Column() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Column();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Column();
-        }
+        return m_matrix.Column();
     }
 
-    Matrix& operator=(std::vector<T> data)
+    Matrix& operator=(std::vector<ElementType> data)
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            p->operator=(std::move(data));
-        } else {
-            std::get<WebGpuMatrix<T>>(m_matrix).operator=(std::move(data));
-        }
+        m_matrix = std::move(data);
         return *this;
     }
 
-    Matrix& operator=(T f)
+    Matrix& operator=(ElementType f)
     {
-        return operator=(std::vector<T> { f });
+        return operator=(std::vector<ElementType> { f });
     }
 
-    Matrix& operator=(std::span<T> data)
+    Matrix& operator=(std::span<ElementType> data)
     {
-        return operator=(std::vector<T> { data.begin(), data.end() });
+        return operator=(std::vector<ElementType> { data.begin(), data.end() });
     }
 
     Matrix Transpose() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Transpose();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Transpose();
-        }
+        return m_matrix.Transpose();
     }
 
     Matrix Sigmoid() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Sigmoid();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Sigmoid();
-        }
+        return m_matrix.Sigmoid();
     }
 
     Matrix ElementProduct(const Matrix& other) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->ElementProduct(std::get<CpuMatrix<T>>(other.m_matrix));
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).ElementProduct(std::get<WebGpuMatrix<T>>(other.m_matrix));
-        }
+        return m_matrix.ElementProduct(other.m_matrix);
     }
 
     Matrix Relu() const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->Relu();
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).Relu();
-        }
+        return m_matrix.Relu();
     }
 
     float operator[](size_t row, size_t column) const
     {
-        if (auto p = std::get_if<CpuMatrix<T>>(&m_matrix)) {
-            return p->operator[](row, column);
-        } else {
-            return std::get<WebGpuMatrix<T>>(m_matrix).operator[](row, column);
-        }
+        return m_matrix[row, column];
     }
 
 private:
-    template <typename... Args>
-    static std::variant<CpuMatrix<T>, WebGpuMatrix<T>> CreateMatrix(MatrixType type, Args&&... args)
-    {
-        if (type == MatrixType::Auto) {
-            type = GetDefaultMatrixType();
-        }
-
-        if (type == MatrixType::Auto) {
-            // TODO: detect whether webgpu is avaliable or not.
-            type = MatrixType::WebGpuMatrix;
-        }
-
-        if (type == MatrixType::WebGpuMatrix) {
-            return WebGpuMatrix<T> { std::forward<Args>(args)... };
-        } else {
-            return CpuMatrix<T> { std::forward<Args>(args)... };
-        }
-    }
-
-    Matrix(CpuMatrix<T> m)
+    Matrix(M m)
         : m_matrix { std::move(m) }
     {
     }
 
-    Matrix(WebGpuMatrix<T> m)
-        : m_matrix { std::move(m) }
-    {
-    }
-
-    std::variant<CpuMatrix<T>, WebGpuMatrix<T>> m_matrix {};
+    M m_matrix {};
 };
 
-export Matrix<std::float32_t> operator-(std::float32_t v, const Matrix<std::float32_t>& m)
+export template <MatrixElementType T>
+using CpuMatrix = Matrix<backend::CpuMatrix<T>>;
+
+export template <MatrixElementType T>
+using WebGpuMatrix = Matrix<backend::WebGpuMatrix<T>>;
+
+CpuMatrix<std::float16_t> operator-(std::float16_t v, const CpuMatrix<std::float16_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix<std::float32_t>>(&m.m_matrix)) {
-        return operator-(v, *p);
-    } else {
-        return operator-(v, std::get<WebGpuMatrix<std::float32_t>>(m.m_matrix));
-    }
+    return operator-(v, m.m_matrix);
 }
 
-export Matrix<std::float32_t> operator*(std::float32_t v, const Matrix<std::float32_t>& m)
+CpuMatrix<std::float32_t> operator-(std::float32_t v, const CpuMatrix<std::float32_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix<std::float32_t>>(&m.m_matrix)) {
-        return operator*(v, *p);
-    } else {
-        return operator*(v, std::get<WebGpuMatrix<std::float32_t>>(m.m_matrix));
-    }
+    return operator-(v, m.m_matrix);
 }
 
-export Matrix<std::float16_t> operator-(std::float16_t v, const Matrix<std::float16_t>& m)
+CpuMatrix<std::float16_t> operator*(std::float16_t v, const CpuMatrix<std::float16_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix<std::float16_t>>(&m.m_matrix)) {
-        return operator-(v, *p);
-    } else {
-        return operator-(v, std::get<WebGpuMatrix<std::float16_t>>(m.m_matrix));
-    }
+    return operator*(v, m.m_matrix);
 }
 
-export Matrix<std::float16_t> operator*(std::float16_t v, const Matrix<std::float16_t>& m)
+CpuMatrix<std::float32_t> operator*(std::float32_t v, const CpuMatrix<std::float32_t>& m)
 {
-    if (auto p = std::get_if<CpuMatrix<std::float16_t>>(&m.m_matrix)) {
-        return operator*(v, *p);
-    } else {
-        return operator*(v, std::get<WebGpuMatrix<std::float16_t>>(m.m_matrix));
-    }
+    return operator*(v, m.m_matrix);
+}
+
+WebGpuMatrix<std::float16_t> operator-(std::float16_t v, const WebGpuMatrix<std::float16_t>& m)
+{
+    return operator-(v, m.m_matrix);
+}
+
+WebGpuMatrix<std::float32_t> operator-(std::float32_t v, const WebGpuMatrix<std::float32_t>& m)
+{
+    return operator-(v, m.m_matrix);
+}
+
+WebGpuMatrix<std::float16_t> operator*(std::float16_t v, const WebGpuMatrix<std::float16_t>& m)
+{
+    return operator*(v, m.m_matrix);
+}
+
+WebGpuMatrix<std::float32_t> operator*(std::float32_t v, const WebGpuMatrix<std::float32_t>& m)
+{
+    return operator*(v, m.m_matrix);
 }
 
 }
