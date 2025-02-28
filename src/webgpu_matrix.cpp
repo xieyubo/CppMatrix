@@ -21,14 +21,14 @@ import :std_patch;
 namespace cpp_matrix {
 
 export template <MatrixElementType T>
-class GpuMatrix {
+class WebGpuMatrix {
     template <MatrixElementType R>
-    friend GpuMatrix<R> ScalarOp(R v, const GpuMatrix<R>& m, char op);
+    friend WebGpuMatrix<R> ScalarOp(R v, const WebGpuMatrix<R>& m, char op);
 
 public:
-    GpuMatrix() = default;
+    WebGpuMatrix() = default;
 
-    GpuMatrix(size_t row, size_t column)
+    WebGpuMatrix(size_t row, size_t column)
         : m_row { row }
         , m_column { column }
     {
@@ -62,7 +62,7 @@ public:
         return sizeof(T) * m_paddingRow * m_paddingColumn;
     }
 
-    GpuMatrix& operator=(std::vector<T> data)
+    WebGpuMatrix& operator=(std::vector<T> data)
     {
         m_row = 1;
         m_column = data.size();
@@ -92,14 +92,14 @@ public:
         return m_pBuffer;
     }
 
-    GpuMatrix operator*(const GpuMatrix& other) const
+    WebGpuMatrix operator*(const WebGpuMatrix& other) const
     {
         if (m_column != other.m_row) {
             throw std::runtime_error { "Can't dot two matrixs" };
         }
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        auto output = GpuMatrix { m_row, other.m_column };
+        auto output = WebGpuMatrix { m_row, other.m_column };
 
         // Caculate mat4x4
         size_t N = (m_paddingColumn >> 2) * (other.m_paddingColumn >> 2) * (m_paddingRow >> 2);
@@ -154,18 +154,18 @@ fn main() {{
         return output;
     }
 
-    GpuMatrix operator+(const GpuMatrix& other) const
+    WebGpuMatrix operator+(const WebGpuMatrix& other) const
     {
         return ElementWiseAddOrSub(other, '+');
     }
 
-    GpuMatrix& operator+=(const GpuMatrix& other)
+    WebGpuMatrix& operator+=(const WebGpuMatrix& other)
     {
         *this = *this + other;
         return *this;
     }
 
-    GpuMatrix operator+(T v) const
+    WebGpuMatrix operator+(T v) const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
         auto vbuffer = adapter->CreateBuffer<T>(1);
@@ -174,7 +174,7 @@ fn main() {{
         std::float32_t tmp { v };
         wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(tmp));
 
-        auto output = GpuMatrix { m_row, m_column };
+        auto output = WebGpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
@@ -200,14 +200,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
-    GpuMatrix operator-(const GpuMatrix& other) const
+    WebGpuMatrix operator-(const WebGpuMatrix& other) const
     {
         return ElementWiseAddOrSub(other, '-');
     }
 
-    GpuMatrix Sigmoid() const
+    WebGpuMatrix Sigmoid() const
     {
-        auto output = GpuMatrix { m_row, m_column };
+        auto output = WebGpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
@@ -231,9 +231,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
-    GpuMatrix Transpose() const
+    WebGpuMatrix Transpose() const
     {
-        auto output = GpuMatrix { m_column, m_row };
+        auto output = WebGpuMatrix { m_column, m_row };
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
@@ -257,14 +257,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return output;
     }
 
-    GpuMatrix ElementProduct(const GpuMatrix& other) const
+    WebGpuMatrix ElementProduct(const WebGpuMatrix& other) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
 
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        auto output = GpuMatrix { m_row, m_column };
+        auto output = WebGpuMatrix { m_row, m_column };
 
         // Caculate vec4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
@@ -321,10 +321,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
         return ret;
     }
 
-    GpuMatrix Relu() const
+    WebGpuMatrix Relu() const
     {
         auto adapter = GpuInstance::GetInstance().GetAdapter();
-        auto output = GpuMatrix { m_row, m_column };
+        auto output = WebGpuMatrix { m_row, m_column };
 
         // Caculate vec4x4
         size_t N = (m_paddingRow >> 2) * m_paddingColumn;
@@ -362,13 +362,13 @@ private:
         return std::is_same_v<T, std::float16_t> ? "enable f16;" : "";
     }
 
-    GpuMatrix ElementWiseAddOrSub(const GpuMatrix& other, char op) const
+    WebGpuMatrix ElementWiseAddOrSub(const WebGpuMatrix& other, char op) const
     {
         if (m_row != other.m_row || m_column != other.m_column) {
             throw std::runtime_error { "Shape is not the same." };
         }
 
-        auto output = GpuMatrix { m_row, m_column };
+        auto output = WebGpuMatrix { m_row, m_column };
 
         // Caculate mat4x4
         size_t N = (m_paddingRow >> 2) * (m_paddingColumn >> 2);
@@ -466,7 +466,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 };
 
 template <MatrixElementType T>
-GpuMatrix<T> ScalarOp(T v, const GpuMatrix<T>& m, char op)
+WebGpuMatrix<T> ScalarOp(T v, const WebGpuMatrix<T>& m, char op)
 {
     auto adapter = GpuInstance::GetInstance().GetAdapter();
     auto vbuffer = adapter->CreateBuffer<T>(1);
@@ -475,7 +475,7 @@ GpuMatrix<T> ScalarOp(T v, const GpuMatrix<T>& m, char op)
     std::float32_t tmp { v };
     wgpuQueueWriteBuffer(adapter->GetQueue(), vbuffer.get(), 0, &v, sizeof(tmp));
 
-    auto output = GpuMatrix<T> { m.m_row, m.m_column };
+    auto output = WebGpuMatrix<T> { m.m_row, m.m_column };
 
     // Caculate mat4x4
     size_t N = (m.m_paddingRow >> 2) * m.m_paddingColumn;
@@ -491,7 +491,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
     }}
 }}
 )",
-        GpuMatrix<T>::WgslFeatures(), GpuMatrix<T>::WgslElementType(), N, op);
+        WebGpuMatrix<T>::WgslFeatures(), WebGpuMatrix<T>::WgslElementType(), N, op);
     auto parameters = std::vector<Parameter> {
         { vbuffer.get(), sizeof(std::float32_t) },
         { m.GetBuffer(), m.BufferSize() },
@@ -502,13 +502,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
 }
 
 export template <MatrixElementType T>
-GpuMatrix<T> operator-(T v, const GpuMatrix<T>& m)
+WebGpuMatrix<T> operator-(T v, const WebGpuMatrix<T>& m)
 {
     return ScalarOp(v, m, '-');
 }
 
 export template <MatrixElementType T>
-GpuMatrix<T> operator*(T v, const GpuMatrix<T>& m)
+WebGpuMatrix<T> operator*(T v, const WebGpuMatrix<T>& m)
 {
     return ScalarOp(v, m, '*');
 }

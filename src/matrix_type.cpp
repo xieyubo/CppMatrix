@@ -11,7 +11,7 @@ namespace cpp_matrix {
 export enum class MatrixType {
     Auto,
     CpuMatrix,
-    GpuMatrix,
+    WebGpuMatrix,
 };
 
 static MatrixType s_defaultMatrixType { MatrixType::Auto };
