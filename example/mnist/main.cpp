@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
     } else if (options.useCpuMatrix) {
         cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::CpuMatrix);
     } else if (options.useGpuMatrix) {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::GpuMatrix);
+        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::WebGpuMatrix);
     }
 
     const size_t kInputNodes = 784;
