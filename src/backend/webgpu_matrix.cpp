@@ -14,11 +14,11 @@ import webgpu;
 
 using namespace webgpu;
 
-export module cpp_matrix:gpu_matrix;
+export module cpp_matrix:webgpu_matrix;
 import :matrix_type;
 import :std_patch;
 
-namespace cpp_matrix {
+namespace cpp_matrix::backend {
 
 export template <MatrixElementType T>
 class WebGpuMatrix {
@@ -26,6 +26,8 @@ class WebGpuMatrix {
     friend WebGpuMatrix<R> ScalarOp(R v, const WebGpuMatrix<R>& m, char op);
 
 public:
+    using ElementType = T;
+
     WebGpuMatrix() = default;
 
     WebGpuMatrix(size_t row, size_t column)

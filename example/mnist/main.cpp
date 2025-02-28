@@ -16,18 +16,15 @@ struct Options {
     std::string training_file;
     std::string test_file;
     bool useF16 {};
-    bool useCpuMatrix {};
-    bool useGpuMatrix {};
+    bool useWebGpuMatrix {};
 };
 
 static Options parse_options(int argc, char* argv[])
 {
     auto options = Options {};
     for (int i = 0; i < argc; ++i) {
-        if (!strcmp(argv[i], "--use-cpu")) {
-            options.useCpuMatrix = true;
-        } else if (!strcmp(argv[i], "--use-gpu")) {
-            options.useGpuMatrix = true;
+        if (!strcmp(argv[i], "--use-webgpu")) {
+            options.useWebGpuMatrix = true;
         } else if (!strcmp(argv[i], "--use-f16")) {
             options.useF16 = true;
         } else if (!strcmp(argv[i], "--epochs")) {
@@ -70,24 +67,24 @@ std::vector<std::pair<int, std::vector<T>>> read_data_from_file(std::string file
 
 static void print_help(const char* appname)
 {
-    printf("%s [--use-cpu|--use-gpu] [--use-f16] [--epochs x] training_file test_file\n", appname);
+    printf("%s [--use-gpu] [--use-f16] [--epochs x] training_file test_file\n", appname);
 }
 
-template <MatrixElementType T>
-void run(NeuralNetwork<T> network, const Options& options)
+template <typename Matrix>
+void run(NeuralNetwork<Matrix> network, const Options& options)
 {
-    auto training_data = read_data_from_file<T>(options.training_file);
+    auto training_data = read_data_from_file<typename Matrix::ElementType>(options.training_file);
 
     for (int i = 0; i < options.epochs; ++i) {
         for (const auto& [v, inputs] : training_data) {
-            std::vector<T> targets(10, 0.01f);
+            std::vector<typename Matrix::ElementType> targets(10, 0.01f);
             targets[v] = 0.99f;
             network.Train(inputs, targets);
         }
     }
 
     // test the network
-    auto test_data = read_data_from_file<T>(options.test_file);
+    auto test_data = read_data_from_file<typename Matrix::ElementType>(options.test_file);
     int total {}, correct {};
     for (const auto& [v, inputs] : test_data) {
         auto res = network.Query(inputs);
@@ -108,7 +105,7 @@ void run(NeuralNetwork<T> network, const Options& options)
             ++correct;
         }
     }
-    printf("performance = %g\n", (double)((T)correct / total));
+    printf("performance = %g\n", (double)((typename Matrix::ElementType)correct / total));
 }
 
 int main(int argc, char* argv[])
@@ -118,26 +115,32 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto options = parse_options(argc - 1, argv + 1);
-    if (options.useGpuMatrix && options.useCpuMatrix) {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
-    } else if (options.useCpuMatrix) {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::CpuMatrix);
-    } else if (options.useGpuMatrix) {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::WebGpuMatrix);
-    }
-
     const size_t kInputNodes = 784;
     const size_t kHiddenNodes = 200;
     const size_t kOutputNodes = 10;
     const float kLearningRate = 0.1f;
 
-    if (options.useF16) {
-        run(NeuralNetwork<std::float16_t> { kInputNodes, kHiddenNodes, kOutputNodes, (std::float16_t)kLearningRate },
-            options);
+    auto options = parse_options(argc - 1, argv + 1);
+    if (options.useWebGpuMatrix) {
+        if (options.useF16) {
+            run(NeuralNetwork<WebGpuMatrix<std::float16_t>> { kInputNodes, kHiddenNodes, kOutputNodes,
+                    (std::float16_t)kLearningRate },
+                options);
+        } else {
+            run(NeuralNetwork<WebGpuMatrix<std::float32_t>> { kInputNodes, kHiddenNodes, kOutputNodes,
+                    (std::float16_t)kLearningRate },
+                options);
+        }
     } else {
-        run(NeuralNetwork<std::float32_t> { kInputNodes, kHiddenNodes, kOutputNodes, kLearningRate }, options);
+        if (options.useF16) {
+            run(NeuralNetwork<CpuMatrix<std::float16_t>> { kInputNodes, kHiddenNodes, kOutputNodes,
+                    (std::float16_t)kLearningRate },
+                options);
+        } else {
+            run(NeuralNetwork<CpuMatrix<std::float32_t>> { kInputNodes, kHiddenNodes, kOutputNodes,
+                    (std::float16_t)kLearningRate },
+                options);
+        }
     }
-
     return 0;
 }

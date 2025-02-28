@@ -2,21 +2,8 @@
 
 import cpp_matrix;
 
-class WebGpuMatrixFloat16Test : public testing::Test {
-public:
-    WebGpuMatrixFloat16Test()
-    {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::WebGpuMatrix);
-    }
+#define MATRIX_TEST(X) TEST(WebGpuMatrixFloat16Test, X)
 
-    ~WebGpuMatrixFloat16Test()
-    {
-        cpp_matrix::SetDefaultMatrixType(cpp_matrix::MatrixType::Auto);
-    }
-};
-
-#define MATRIX_TEST(X) TEST_F(WebGpuMatrixFloat16Test, X)
-
-using Matrix = cpp_matrix::Matrix<std::float16_t>;
+using Matrix = cpp_matrix::WebGpuMatrix<std::float16_t>;
 
 #include "matrix_test.cpp"

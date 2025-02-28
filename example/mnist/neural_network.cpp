@@ -12,15 +12,17 @@ export module neural_network;
 
 using namespace cpp_matrix;
 
-export template <MatrixElementType T>
+export template <typename Matrix>
 class NeuralNetwork {
 public:
+    using T = typename Matrix::ElementType;
+
     NeuralNetwork(size_t inputNodes, size_t hiddenNodes, size_t outputNodes, float learningRate)
         : m_inodes { inputNodes }
         , m_hnodes { hiddenNodes }
         , m_onodes { outputNodes }
-        , m_wih { Matrix<T>::Random(hiddenNodes, inputNodes) - 0.5f }
-        , m_who { Matrix<T>::Random(outputNodes, hiddenNodes) - 0.5f }
+        , m_wih { Matrix::Random(hiddenNodes, inputNodes) - 0.5f }
+        , m_who { Matrix::Random(outputNodes, hiddenNodes) - 0.5f }
         , m_lr { learningRate }
     {
     }
@@ -28,8 +30,8 @@ public:
     void Train(std::vector<T> inputs_list, std::vector<T> targets_list)
     {
         // convert inputs list to matrix
-        auto inputs = Matrix<T> { m_inodes, /*column=*/1, inputs_list };
-        auto targets = Matrix<T> { m_onodes, /*column=*/1, targets_list };
+        auto inputs = Matrix { m_inodes, /*column=*/1, inputs_list };
+        auto targets = Matrix { m_onodes, /*column=*/1, targets_list };
 
         // calculate signals into hidden layer
         auto hidden_inputs = m_wih * inputs;
@@ -63,7 +65,7 @@ public:
     std::vector<T> Query(std::vector<T> inputs_list)
     {
         // convert inputs list to matrix
-        auto inputs = Matrix<T> { m_inodes, /*column=*/1, inputs_list };
+        auto inputs = Matrix { m_inodes, /*column=*/1, inputs_list };
 
         // caculate signals into hidden layer
         auto hidden_inputs = m_wih * inputs;
@@ -84,7 +86,7 @@ private:
     size_t m_inodes {};
     size_t m_hnodes {};
     size_t m_onodes {};
-    Matrix<T> m_wih {};
-    Matrix<T> m_who {};
+    Matrix m_wih {};
+    Matrix m_who {};
     float m_lr {};
 };

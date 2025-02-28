@@ -8,24 +8,6 @@ import :std_patch;
 
 namespace cpp_matrix {
 
-export enum class MatrixType {
-    Auto,
-    CpuMatrix,
-    WebGpuMatrix,
-};
-
-static MatrixType s_defaultMatrixType { MatrixType::Auto };
-
-export void SetDefaultMatrixType(MatrixType type)
-{
-    s_defaultMatrixType = type;
-}
-
-export MatrixType GetDefaultMatrixType()
-{
-    return s_defaultMatrixType;
-}
-
 export template <typename T>
 concept MatrixElementType = std::is_same_v<T, std::float32_t> || std::is_same_v<T, std::float16_t>;
 
